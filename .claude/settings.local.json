@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm -v)",
+      "PowerShell(Write-Output \"node: $\\(\\(Get-Command node -ErrorAction SilentlyContinue\\).Source\\)\"; if \\(Get-Command node -ErrorAction SilentlyContinue\\) { node -v }; Write-Output \"npm: $\\(\\(Get-Command npm -ErrorAction SilentlyContinue\\).Source\\)\"; if \\(Get-Command npm -ErrorAction SilentlyContinue\\) { npm -v }; Write-Output \"git: $\\(\\(Get-Command git -ErrorAction SilentlyContinue\\).Source\\)\")",
+      "WebSearch",
+      "WebFetch(domain:guide.ncloud-docs.com)",
+      "WebFetch(domain:www.ncloud-forums.com)"
+    ]
+  }
+}
