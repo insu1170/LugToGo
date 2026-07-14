@@ -1,0 +1,2212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>짐투고 — 소비자 앱 ⇄ 사장님 앱 실시간 연동 데모</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
+:root{
+  --navy:#0B2942;
+  --navy-2:#123A56;
+  --navy-3:#1B4A6B;
+  --cream:#F6EFE1;
+  --paper:#FFFFFF;
+  --coral:#FF5A36;
+  --coral-dark:#E0441F;
+  --teal:#1F9E90;
+  --teal-dark:#167C71;
+  --amber:#E8A93C;
+  --amber-dark:#B97F1E;
+  --ink:#142430;
+  --slate:#6B7C88;
+  --slate-light:#9FB0BA;
+  --sand-line:#E4D9C4;
+  --kraft:#DEB988;
+  --kraft-dark:#B98D5B;
+  --gray-pin:#AEB9BF;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  background:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0) 0 0/22px 22px,
+    var(--navy);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:18px;
+  padding:26px 14px 40px;
+  font-family:'Noto Sans KR', sans-serif;
+}
+.display{font-family:'Black Han Sans', sans-serif; letter-spacing:0.5px;}
+.mono{font-family:'JetBrains Mono', monospace;}
+.demo-head{text-align:center; color:var(--cream);}
+.demo-head .t{font-size:24px;}
+.demo-head .s{font-size:12px; color:var(--slate-light); margin-top:6px; line-height:1.7;}
+.demo-head .s b{color:#7FE3D6;}
+.stage{display:flex; gap:22px; align-items:flex-start; justify-content:center; flex-wrap:wrap;}
+.frame-col{display:flex; flex-direction:column; align-items:center; gap:10px;}
+.frame-label{
+  color:var(--cream); font-size:12.5px; font-weight:800; letter-spacing:0.5px;
+  background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.14);
+  padding:6px 14px; border-radius:20px; display:flex; align-items:center; gap:7px;
+}
+.frame-label .dot{width:8px;height:8px;border-radius:50%;}
+.link-indicator{
+  align-self:center; color:var(--cream); text-align:center; font-size:11px; font-weight:700;
+  display:flex; flex-direction:column; align-items:center; gap:6px; padding:0 4px;
+}
+.link-indicator .arrows{font-size:26px; color:#7FE3D6; animation:pulseGlow 1.8s infinite;}
+@keyframes pulseGlow{0%,100%{opacity:0.55;}50%{opacity:1;}}
+/* ---------- Phone frame (소비자) ---------- */
+.phone{
+  width:390px;
+  max-width:100%;
+  height:812px;
+  background:var(--cream);
+  border-radius:38px;
+  border:8px solid var(--navy-2);
+  box-shadow:0 30px 70px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+}
+.statusbar{
+  height:30px;
+  background:var(--navy);
+  color:var(--cream);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 22px;
+  font-size:12px;
+  font-family:'JetBrains Mono',monospace;
+  flex-shrink:0;
+}
+.appbar{
+  background:var(--navy);
+  color:var(--cream);
+  padding:14px 18px 16px;
+  flex-shrink:0;
+  position:relative;
+}
+.appbar-row{display:flex; align-items:center; gap:10px;}
+.back-btn{
+  width:30px; height:30px; border-radius:50%;
+  background:rgba(255,255,255,0.1);
+  border:none; color:var(--cream);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex-shrink:0;
+}
+.back-btn:active{background:rgba(255,255,255,0.2);}
+.brand{display:flex; align-items:center; gap:8px;}
+.brand-mark{
+  width:30px;height:30px; border-radius:8px;
+  background:var(--coral);
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.brand-title{font-size:20px; letter-spacing:0.5px;}
+.brand-sub{font-size:11px; color:var(--slate-light); margin-top:2px; font-weight:500;}
+.appbar-title{font-size:17px; font-weight:700;}
+.info-btn{
+  position:absolute; right:16px; top:50%; transform:translateY(-50%);
+  display:flex; align-items:center; gap:5px;
+  background:rgba(255,255,255,0.12); border:none; color:var(--cream);
+  border-radius:16px; padding:6px 11px; font-size:11px; font-weight:700;
+  cursor:pointer; font-family:'Noto Sans KR',sans-serif;
+}
+.info-btn:active{background:rgba(255,255,255,0.22);}
+.content{
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  background:var(--cream);
+  -webkit-overflow-scrolling:touch;
+}
+.content::-webkit-scrollbar{width:0;}
+.tag-badge{
+  display:inline-flex; align-items:center; gap:5px;
+  background:var(--kraft);
+  color:var(--navy);
+  font-family:'JetBrains Mono',monospace;
+  font-weight:700;
+  font-size:11px;
+  padding:3px 9px 3px 7px;
+  border-radius:3px 9px 9px 3px;
+  position:relative;
+  border:1px solid var(--kraft-dark);
+  white-space:nowrap;
+}
+.tag-badge::before{
+  content:'';
+  width:5px;height:5px;
+  border-radius:50%;
+  background:var(--cream);
+  border:1px solid var(--kraft-dark);
+  flex-shrink:0;
+}
+.filter-row{display:flex; gap:8px; padding:14px 18px 4px; overflow-x:auto;}
+.chip{
+  border:1.5px solid var(--sand-line);
+  background:var(--paper);
+  color:var(--slate);
+  font-size:12.5px; font-weight:600;
+  padding:7px 14px;
+  border-radius:20px;
+  white-space:nowrap;
+  cursor:pointer;
+  flex-shrink:0;
+}
+.chip.active{background:var(--navy); border-color:var(--navy); color:var(--cream);}
+.toggle-row{display:flex; align-items:center; justify-content:space-between; padding:10px 18px 2px;}
+.toggle-label{font-size:12.5px; font-weight:600; color:var(--navy); display:flex; align-items:center; gap:6px;}
+.switch{
+  width:38px; height:22px; background:var(--sand-line); border-radius:20px;
+  position:relative; cursor:pointer; flex-shrink:0; transition:background .15s;
+}
+.switch.on{background:var(--teal);}
+.switch::after{
+  content:''; position:absolute; top:2px; left:2px;
+  width:18px; height:18px; border-radius:50%; background:var(--paper);
+  transition:left .15s; box-shadow:0 1px 3px rgba(0,0,0,0.3);
+}
+.switch.on::after{left:18px;}
+.map-wrap{
+  margin:12px 18px 4px;
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid var(--sand-line);
+  position:relative;
+  background:#DCEAE8;
+  height:230px;
+}
+.map-svg{width:100%; height:100%; display:block;}
+.pin{
+  position:absolute;
+  transform:translate(-50%,-100%);
+  cursor:pointer;
+  display:flex; flex-direction:column; align-items:center;
+}
+.pin-dot{
+  width:26px; height:26px; border-radius:50% 50% 50% 0;
+  background:var(--coral);
+  transform:rotate(-45deg);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 3px 6px rgba(0,0,0,0.3);
+  border:2px solid var(--paper);
+}
+.pin-dot svg{transform:rotate(45deg); width:12px; height:12px;}
+.pin.gray .pin-dot{background:var(--gray-pin); width:16px; height:16px; border-width:1.5px;}
+.pin.partner .pin-dot{
+  background:linear-gradient(135deg,#E8A93C 0%,#C98A1E 100%);
+  width:30px; height:30px;
+  box-shadow:0 3px 8px rgba(0,0,0,0.35), 0 0 0 3px rgba(232,169,60,0.28);
+}
+.pin.partner .pin-tip{color:#B97F1E; font-weight:800;}
+.pin-tip{font-size:9px; font-weight:700; color:var(--navy); background:var(--paper); padding:1px 5px; border-radius:6px; margin-top:2px; white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,0.15);}
+.map-label{position:absolute; font-size:9.5px; color:var(--navy-3); font-weight:600; opacity:0.55; font-family:'JetBrains Mono',monospace;}
+.map-legend{
+  position:absolute; bottom:8px; left:8px; background:rgba(255,255,255,0.92);
+  border-radius:8px; padding:6px 9px; font-size:9.5px; color:var(--navy); display:flex; flex-direction:column; gap:3px;
+  border:1px solid var(--sand-line);
+}
+.map-legend div{display:flex; align-items:center; gap:5px;}
+.legend-dot{width:8px;height:8px;border-radius:50%;}
+.section-head{padding:18px 18px 8px; display:flex; align-items:baseline; justify-content:space-between;}
+.section-title{font-size:15px; font-weight:800; color:var(--navy);}
+.section-count{font-size:11.5px; color:var(--slate); font-family:'JetBrains Mono',monospace;}
+.store-list{padding:4px 18px 18px; display:flex; flex-direction:column; gap:10px;}
+.store-card{
+  background:var(--paper);
+  border:1px solid var(--sand-line);
+  border-radius:16px;
+  padding:12px;
+  display:flex; gap:11px;
+  cursor:pointer;
+  transition:transform .1s;
+}
+.store-card:active{transform:scale(0.98);}
+.store-thumb{
+  width:64px; height:64px; border-radius:12px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px;
+}
+.store-info{flex:1; min-width:0;}
+.store-top{display:flex; align-items:center; gap:6px;}
+.store-name{font-size:14.5px; font-weight:800; color:var(--ink); flex:1;}
+.store-meta{font-size:11.5px; color:var(--slate); margin-top:2px;}
+.store-addr{font-size:10.5px; color:var(--slate-light); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.store-bottom{display:flex; align-items:center; gap:6px; margin-top:7px; flex-wrap:wrap;}
+.pill{font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px;}
+.pill.open{background:rgba(31,158,144,0.12); color:var(--teal-dark);}
+.pill.closed{background:rgba(107,124,136,0.14); color:var(--slate);}
+.pill.stock{background:rgba(255,90,54,0.1); color:var(--coral-dark);}
+.pill.wait{background:rgba(232,169,60,0.16); color:var(--amber-dark);}
+.pill.ok{background:rgba(31,158,144,0.14); color:var(--teal-dark);}
+.pill.no{background:rgba(107,124,136,0.16); color:var(--slate);}
+.star{color:#E8A93C;}
+.hero{height:150px; position:relative; display:flex; align-items:flex-end; padding:14px 18px;}
+.hero-badges{position:absolute; top:12px; left:18px; display:flex; gap:6px;}
+.hero-title{color:var(--paper); font-size:22px; text-shadow:0 2px 8px rgba(0,0,0,0.35);}
+.detail-body{padding:14px 18px 10px;}
+.rating-row{display:flex; align-items:center; gap:6px; font-size:13px; color:var(--slate); margin-bottom:8px;}
+.addr-row{font-size:12.5px; color:var(--ink); margin-bottom:4px; display:flex; gap:6px; align-items:flex-start;}
+.hours-row{font-size:12.5px; margin-bottom:12px; display:flex; align-items:center; gap:7px;}
+.notice-banner{
+  background:rgba(232,169,60,0.13); border:1px solid rgba(232,169,60,0.5); border-radius:12px;
+  padding:10px 12px; font-size:12px; color:var(--amber-dark); line-height:1.6; margin-bottom:12px;
+  display:flex; gap:8px; align-items:flex-start;
+}
+.notice-banner b{color:var(--navy);}
+.stat-strip{display:flex; gap:8px; margin:12px 0;}
+.stat-box{flex:1; background:var(--paper); border:1px solid var(--sand-line); border-radius:12px; padding:10px; text-align:center;}
+.stat-box .num{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:16px; color:var(--navy);}
+.stat-box .lbl{font-size:10px; color:var(--slate); margin-top:2px;}
+.crowd-chart{display:flex; align-items:flex-end; gap:3px; height:56px; margin:10px 0 4px; padding:0 2px;}
+.crowd-bar{flex:1; background:var(--sand-line); border-radius:3px 3px 0 0; position:relative;}
+.crowd-bar.now{background:var(--coral);}
+.crowd-hours{display:flex; gap:3px; padding:0 2px; margin-bottom:14px;}
+.crowd-hours span{flex:1; text-align:center; font-size:8px; color:var(--slate-light); font-family:'JetBrains Mono',monospace;}
+.discount-banner{
+  margin:6px 0 14px; border-radius:16px; padding:14px;
+  background:linear-gradient(135deg, var(--navy) 0%, var(--navy-3) 100%);
+  color:var(--cream); position:relative; overflow:hidden;
+}
+.discount-banner::after{
+  content:'짐투고 할인'; position:absolute; right:-26px; top:12px; transform:rotate(45deg);
+  background:var(--coral); color:var(--cream); font-size:9px; font-weight:800; padding:3px 30px;
+  font-family:'JetBrains Mono',monospace;
+}
+.discount-eyebrow{font-size:10.5px; color:var(--slate-light); font-weight:700; letter-spacing:0.5px;}
+.discount-menu-name{font-size:17px; font-weight:800; margin:4px 0 8px;}
+.discount-price-row{display:flex; align-items:baseline; gap:8px;}
+.price-old{font-size:13px; color:var(--slate-light); text-decoration:line-through;}
+.price-new{font-size:21px; font-weight:800; color:#7FE3D6; font-family:'JetBrains Mono',monospace;}
+.price-save{font-size:11px; background:var(--coral); padding:2px 7px; border-radius:6px; font-weight:700;}
+.menu-list{display:flex; flex-direction:column; gap:0; margin-bottom:14px;}
+.menu-item{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 2px; border-bottom:1px solid var(--sand-line); font-size:13px;
+}
+.menu-item:last-child{border-bottom:none;}
+.menu-item .price{font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--navy);}
+.menu-item.soldout span:first-child{color:var(--slate-light); text-decoration:line-through;}
+.menu-item.soldout .price{color:var(--slate-light); text-decoration:line-through;}
+.soldout-badge{font-size:9.5px; font-weight:800; color:var(--coral-dark); background:rgba(255,90,54,0.1); padding:2px 7px; border-radius:8px; margin-left:6px; text-decoration:none !important; display:inline-block;}
+.review-scroll{display:flex; gap:10px; overflow-x:auto; padding:2px 2px 14px;}
+.review-card{min-width:210px; background:var(--paper); border:1px solid var(--sand-line); border-radius:14px; padding:12px;}
+.review-head{display:flex; justify-content:space-between; font-size:11.5px; font-weight:700; color:var(--navy); margin-bottom:5px;}
+.review-text{font-size:12px; color:var(--ink); line-height:1.5;}
+.review-reply{
+  margin-top:8px; background:var(--cream); border-radius:10px; padding:8px 10px;
+  font-size:11px; color:var(--ink); line-height:1.55; border-left:3px solid var(--teal);
+}
+.review-reply .who{font-weight:800; color:var(--teal-dark); font-size:10.5px; margin-bottom:2px;}
+.sticky-cta{
+  position:sticky; bottom:0; background:var(--cream);
+  border-top:1px solid var(--sand-line); padding:12px 18px 16px; display:flex; gap:8px;
+}
+.btn{border:none; border-radius:14px; font-weight:800; font-size:13px; cursor:pointer; padding:13px 10px; text-align:center;}
+.btn-outline{flex:1; background:var(--paper); color:var(--navy); border:1.5px solid var(--navy);}
+.btn-solid{flex:1.3; background:var(--coral); color:var(--paper);}
+.btn-full{width:100%; background:var(--coral); color:var(--paper); padding:15px;}
+.btn-full:active, .btn-solid:active{background:var(--coral-dark);}
+.btn[disabled]{opacity:0.4; pointer-events:none;}
+.booking-summary{
+  margin:14px 18px; background:var(--navy); color:var(--cream); border-radius:16px; padding:14px 16px;
+  display:flex; align-items:center; gap:10px;
+}
+.booking-summary .txt{flex:1;}
+.booking-summary .store{font-size:14px; font-weight:800;}
+.booking-summary .mode{font-size:11.5px; color:var(--slate-light); margin-top:2px;}
+.form-block{margin:0 18px 18px;}
+.form-label{font-size:12.5px; font-weight:800; color:var(--navy); margin-bottom:8px; display:block;}
+.stepper{
+  display:flex; align-items:center; justify-content:space-between;
+  background:var(--paper); border:1px solid var(--sand-line); border-radius:14px; padding:10px 14px;
+}
+.stepper .cnt{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:16px; min-width:24px; text-align:center;}
+.step-btn{
+  width:30px; height:30px; border-radius:50%; border:1.5px solid var(--sand-line); background:var(--paper);
+  font-size:16px; font-weight:700; color:var(--navy); cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.step-btn:active{background:var(--sand-line);}
+.duration-row{display:flex; gap:6px;}
+.dur-opt{
+  flex:1; text-align:center; padding:10px 2px; border-radius:12px; border:1.5px solid var(--sand-line);
+  background:var(--paper); font-size:11.5px; font-weight:700; color:var(--slate); cursor:pointer;
+}
+.dur-opt.active{border-color:var(--coral); background:rgba(255,90,54,0.08); color:var(--coral-dark);}
+.dur-opt .sub{font-size:8.5px; font-weight:500; color:var(--slate-light); margin-top:2px;}
+.summary-card{
+  margin:0 18px 18px; background:var(--paper); border:1px solid var(--sand-line); border-radius:16px; padding:14px 16px;
+}
+.summary-line{display:flex; justify-content:space-between; font-size:12.5px; color:var(--slate); padding:5px 0;}
+.summary-line b{color:var(--ink); font-weight:600;}
+.summary-total{
+  display:flex; justify-content:space-between; align-items:center; border-top:1.5px dashed var(--sand-line);
+  margin-top:8px; padding-top:10px; font-size:15px; font-weight:800; color:var(--navy);
+}
+.summary-total .amt{font-family:'JetBrains Mono',monospace; color:var(--coral-dark); font-size:19px;}
+.confirm-wrap{padding:26px 18px; display:flex; flex-direction:column; align-items:center; text-align:center;}
+.confirm-check{
+  width:64px; height:64px; border-radius:50%; background:var(--teal); display:flex; align-items:center; justify-content:center;
+  margin-bottom:14px; font-size:26px;
+}
+.confirm-check.wait{background:var(--amber); animation:pulseGlow 1.6s infinite;}
+.confirm-check.no{background:var(--slate);}
+.confirm-title{font-size:19px; font-weight:800; color:var(--navy); margin-bottom:6px;}
+.confirm-sub{font-size:12.5px; color:var(--slate); margin-bottom:22px; line-height:1.5;}
+.claim-tag{
+  width:100%; max-width:300px; background:var(--kraft); border:2px dashed var(--kraft-dark); border-radius:14px;
+  padding:18px; position:relative; margin-bottom:18px;
+}
+.claim-tag.pending{background:#EDE3CE; opacity:0.85;}
+.claim-tag::before{
+  content:''; position:absolute; left:-9px; top:50%; transform:translateY(-50%);
+  width:16px; height:16px; border-radius:50%; background:var(--navy);
+}
+.claim-code{font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:800; color:var(--navy); letter-spacing:2px;}
+.claim-store{font-size:12.5px; font-weight:700; color:var(--navy); margin-top:6px;}
+.claim-meta{font-size:10.5px; color:var(--navy-3); margin-top:8px; display:flex; justify-content:space-between;}
+.tabbar{display:flex; background:var(--paper); border-top:1px solid var(--sand-line); flex-shrink:0; padding-bottom:6px;}
+.tab-btn{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:9px 0 4px;
+  background:none; border:none; cursor:pointer; color:var(--slate-light);
+}
+.tab-btn.active{color:var(--coral);}
+.tab-btn span{font-size:10px; font-weight:700;}
+.entry-wrap{min-height:100%; display:flex; flex-direction:column; justify-content:center; padding:40px 26px 60px; gap:16px;}
+.entry-hello{text-align:center; margin-bottom:10px;}
+.entry-hello .big{font-size:22px; color:var(--navy);}
+.entry-hello .sub{font-size:12.5px; color:var(--slate); margin-top:6px; line-height:1.6;}
+.entry-card{
+  background:var(--paper); border:1.5px solid var(--sand-line); border-radius:22px;
+  padding:26px 22px; display:flex; align-items:center; gap:16px; cursor:pointer;
+  transition:transform .1s;
+}
+.entry-card:active{transform:scale(0.97);}
+.entry-icon{
+  width:56px; height:56px; border-radius:16px; display:flex; align-items:center; justify-content:center;
+  font-size:26px; flex-shrink:0;
+}
+.entry-card .t{font-size:17px; font-weight:800; color:var(--navy);}
+.entry-card .d{font-size:11.5px; color:var(--slate); margin-top:3px; line-height:1.5;}
+.entry-arrow{margin-left:auto; color:var(--slate-light); font-size:18px;}
+.coupon-card{
+  margin:0 18px 12px; background:var(--paper); border:1.5px dashed var(--kraft-dark); border-radius:16px;
+  padding:16px; position:relative;
+}
+.coupon-card .amt{font-family:'JetBrains Mono',monospace; font-size:20px; font-weight:800; color:var(--coral-dark);}
+.coupon-card .name{font-size:13.5px; font-weight:800; color:var(--navy); margin-top:4px;}
+.coupon-card .cond{font-size:11px; color:var(--slate); margin-top:6px; line-height:1.5;}
+.coupon-card.clickable{cursor:pointer; transition:transform .1s;}
+.coupon-card.clickable:active{transform:scale(0.98);}
+.coupon-valid{display:inline-block; font-size:10px; font-weight:800; padding:3px 8px; border-radius:8px; margin-top:8px;
+  background:rgba(31,158,144,0.12); color:var(--teal-dark);}
+.coupon-valid.short{background:rgba(232,169,60,0.16); color:var(--amber-dark);}
+.photo-guide{
+  background:rgba(31,158,144,0.08); border:1px solid rgba(31,158,144,0.35); border-radius:12px;
+  padding:11px 13px; font-size:11.5px; color:var(--teal-dark); line-height:1.65; margin-bottom:12px;
+  display:flex; gap:8px; align-items:flex-start;
+}
+.photo-guide b{color:var(--navy);}
+.photo-drop{
+  border:2px dashed var(--sand-line); border-radius:16px; background:var(--paper);
+  padding:26px 16px; text-align:center; cursor:pointer;
+}
+.photo-drop:active{background:var(--cream);}
+.photo-drop .cam{font-size:32px; margin-bottom:8px;}
+.photo-drop .t{font-size:13px; font-weight:800; color:var(--navy);}
+.photo-drop .d{font-size:10.5px; color:var(--slate-light); margin-top:4px;}
+.photo-preview{position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--sand-line);}
+.photo-preview img{width:100%; display:block; max-height:240px; object-fit:cover;}
+.photo-preview .stamp{
+  position:absolute; top:10px; left:10px; background:rgba(31,158,144,0.92); color:#fff;
+  font-size:10.5px; font-weight:800; padding:5px 10px; border-radius:9px; display:flex; align-items:center; gap:5px;
+}
+.modal-overlay{
+  position:absolute; inset:0; z-index:60;
+  background:rgba(11,41,66,0.55);
+  display:flex; align-items:center; justify-content:center;
+  padding:26px;
+}
+.modal-card{
+  width:100%; background:var(--paper); border-radius:18px; padding:22px 18px;
+  text-align:center; box-shadow:0 12px 40px rgba(0,0,0,0.35);
+}
+.modal-icon{font-size:30px; margin-bottom:10px;}
+.modal-text{font-size:13px; color:var(--ink); line-height:1.7; margin-bottom:16px; word-break:keep-all;}
+.modal-btns{display:flex; gap:8px;}
+.modal-btns .btn{flex:1; padding:12px 6px;}
+.modal-card.long{text-align:left; max-height:600px; display:flex; flex-direction:column;}
+.modal-scroll{overflow-y:auto; margin-bottom:14px; padding-right:4px;}
+.modal-sec{font-size:12.5px; font-weight:800; color:var(--navy); margin:10px 0 5px;}
+.modal-sec:first-child{margin-top:0;}
+.modal-p{font-size:11.5px; color:var(--slate); line-height:1.65; margin-bottom:4px; word-break:keep-all;}
+.modal-p b{color:var(--ink);}
+.roulette-box{margin:0 18px 6px; background:var(--paper); border:1px solid var(--sand-line); border-radius:16px; padding:14px;}
+.roulette-empty{font-size:12px; color:var(--slate); text-align:center; padding:10px 4px 12px; line-height:1.6;}
+.roulette-list{display:flex; flex-direction:column; gap:8px; margin-bottom:12px;}
+.roulette-item{
+  border:1.5px solid var(--sand-line); border-radius:12px; padding:11px 14px;
+  font-size:13.5px; font-weight:700; color:var(--navy); transition:all .08s;
+}
+.roulette-item.hot{border-color:var(--coral); background:rgba(255,90,54,0.14); transform:scale(1.02);}
+.roulette-item.win{border-color:var(--teal); background:rgba(31,158,144,0.14);}
+.roulette-result{text-align:center; font-size:14.5px; color:var(--navy); margin-bottom:10px; font-weight:700;}
+.roulette-hint{font-size:10.5px; color:var(--slate-light); text-align:center; margin-top:8px;}
+.store-card.sel{border:1.5px solid var(--coral); background:rgba(255,90,54,0.05);}
+.sel-num{
+  width:20px; height:20px; border-radius:50%; background:var(--coral); color:#fff;
+  font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.notice-box{margin-top:14px; background:var(--paper); border:1px solid var(--sand-line); border-radius:14px; padding:14px 16px;}
+.notice-title{font-size:12.5px; font-weight:800; color:var(--navy); margin-bottom:8px;}
+.notice-sub{font-size:11.5px; color:var(--slate); line-height:1.6;}
+.notice-sub b{color:var(--navy);}
+.notice-box ul{margin:0; padding-left:16px; display:flex; flex-direction:column; gap:6px;}
+.notice-box li{font-size:11.5px; color:var(--slate); line-height:1.6;}
+.simple-card{margin:14px 18px; background:var(--paper); border:1px solid var(--sand-line); border-radius:16px; padding:16px;}
+.empty{padding:60px 30px; text-align:center; color:var(--slate); font-size:13px; line-height:1.7;}
+.profile-avatar{width:56px; height:56px; border-radius:50%; background:var(--navy); display:flex; align-items:center; justify-content:center; color:var(--cream); font-size:22px; font-weight:800;}
+.c-toast{
+  position:absolute; top:42px; left:50%; transform:translateX(-50%); z-index:90;
+  background:var(--navy); color:var(--cream); padding:10px 16px; border-radius:14px;
+  font-size:12px; font-weight:700; box-shadow:0 8px 26px rgba(0,0,0,0.35);
+  width:max-content; max-width:86%; display:flex; align-items:center; gap:8px;
+  animation:slideDownC .3s;
+}
+@keyframes slideDownC{from{transform:translate(-50%,-140%);}to{transform:translate(-50%,0);}}
+/* ========== 사장님 태블릿 ========== */
+.tablet{
+  width:560px;
+  max-width:100%;
+  height:812px;
+  background:#EFEDE6;
+  border-radius:30px;
+  border:8px solid var(--navy-2);
+  box-shadow:0 30px 70px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+}
+.o-header{
+  background:var(--navy); color:var(--cream); padding:12px 16px;
+  display:flex; align-items:center; gap:10px; flex-shrink:0;
+}
+.o-brand{display:flex; align-items:center; gap:8px; margin-right:auto;}
+.o-brand .t{font-size:17px;}
+.o-brand .s{font-size:9.5px; color:var(--slate-light); margin-top:1px; font-weight:600; letter-spacing:1px;}
+.o-store-select{
+  background:rgba(255,255,255,0.12); color:var(--cream); border:1px solid rgba(255,255,255,0.25);
+  border-radius:10px; padding:7px 10px; font-weight:700; font-family:'Noto Sans KR',sans-serif; font-size:12.5px;
+  cursor:pointer; max-width:160px;
+}
+.o-store-select option{color:var(--ink);}
+.o-open-chip{
+  display:flex; align-items:center; gap:6px; font-size:11px; font-weight:800;
+  background:rgba(255,255,255,0.1); border-radius:16px; padding:6px 11px;
+}
+.o-open-chip .d{width:8px; height:8px; border-radius:50%;}
+.o-body{flex:1; display:flex; min-height:0;}
+.o-rail{
+  width:78px; background:var(--paper); border-right:1px solid var(--sand-line);
+  display:flex; flex-direction:column; padding-top:12px; flex-shrink:0; gap:2px;
+}
+.o-rail-btn{
+  position:relative; padding:13px 0 11px; display:flex; flex-direction:column; align-items:center; gap:5px;
+  color:var(--slate-light); background:none; border:none; cursor:pointer; font-size:10px; font-weight:800;
+  font-family:'Noto Sans KR',sans-serif;
+}
+.o-rail-btn.active{color:var(--coral);}
+.o-rail-btn.active::before{
+  content:''; position:absolute; left:0; top:12px; bottom:10px; width:3.5px;
+  background:var(--coral); border-radius:0 4px 4px 0;
+}
+.o-rail-btn .ic{font-size:19px;}
+.o-badge{
+  position:absolute; top:7px; right:15px; min-width:17px; height:17px; border-radius:9px;
+  background:var(--coral); color:#fff; font-size:9.5px; display:flex; align-items:center; justify-content:center;
+  padding:0 5px; font-weight:800; font-family:'JetBrains Mono',monospace;
+  box-shadow:0 0 0 2px var(--paper);
+}
+.o-content{flex:1; overflow-y:auto; padding:16px 16px 26px; min-width:0;}
+.o-content::-webkit-scrollbar{width:0;}
+.o-page-title{font-size:17px; font-weight:800; color:var(--navy); margin:2px 0 4px;}
+.o-page-sub{font-size:11.5px; color:var(--slate); margin-bottom:14px;}
+.o-card{background:var(--paper); border:1px solid var(--sand-line); border-radius:16px; padding:15px; margin-bottom:12px;}
+.o-sec-title{font-size:13.5px; font-weight:800; color:var(--navy); margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.o-sec-title .mini{font-size:10.5px; color:var(--slate-light); font-weight:600;}
+.o-order{
+  background:var(--paper); border:1.5px solid var(--sand-line); border-radius:16px; padding:14px; margin-bottom:10px;
+}
+.o-order.pending{border-color:var(--amber); box-shadow:0 0 0 3px rgba(232,169,60,0.12);}
+.o-order-top{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+.o-order-code{font-family:'JetBrains Mono',monospace; font-weight:800; font-size:13.5px; color:var(--navy);}
+.o-order-time{font-size:10.5px; color:var(--slate-light); margin-left:auto; font-family:'JetBrains Mono',monospace;}
+.o-order-detail{font-size:12.5px; color:var(--ink); line-height:1.7;}
+.o-order-detail b{color:var(--navy);}
+.o-order-actions{display:flex; gap:8px; margin-top:11px;}
+.o-btn{
+  border:none; border-radius:11px; padding:10px 14px; font-weight:800; font-size:12.5px; cursor:pointer;
+  font-family:'Noto Sans KR',sans-serif;
+}
+.o-btn-accept{flex:1.4; background:var(--teal); color:#fff;}
+.o-btn-accept:active{background:var(--teal-dark);}
+.o-btn-reject{flex:1; background:var(--paper); border:1.5px solid var(--sand-line); color:var(--slate);}
+.o-btn-navy{background:var(--navy); color:var(--cream);}
+.o-btn-coral{background:var(--coral); color:#fff;}
+.o-btn-ghost{background:var(--cream); border:1.5px solid var(--sand-line); color:var(--navy);}
+.o-btn-sm{padding:8px 12px; font-size:11.5px; border-radius:9px;}
+.o-empty{padding:26px 10px; text-align:center; color:var(--slate-light); font-size:12px; line-height:1.7;}
+.o-tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px;}
+.o-tile{background:var(--paper); border:1px solid var(--sand-line); border-radius:14px; padding:12px 10px;}
+.o-tile .lbl{font-size:10px; color:var(--slate); font-weight:700;}
+.o-tile .num{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:16.5px; color:var(--navy); margin-top:5px;}
+.o-tile .sub{font-size:9.5px; color:var(--slate-light); margin-top:3px;}
+.o-tile.pri{background:var(--navy); border-color:var(--navy);}
+.o-tile.pri .lbl{color:var(--slate-light);}
+.o-tile.pri .num{color:#7FE3D6;}
+.o-tile.pri .sub{color:var(--slate-light);}
+.o-input{
+  border:1.5px solid var(--sand-line); border-radius:10px; padding:9px 11px;
+  font-family:'Noto Sans KR',sans-serif; font-size:12.5px; width:100%; background:var(--paper); color:var(--ink);
+}
+.o-input:focus{outline:none; border-color:var(--navy);}
+textarea.o-input{resize:none; line-height:1.6;}
+.o-select{
+  border:1.5px solid var(--sand-line); border-radius:10px; padding:9px 11px; background:var(--paper);
+  font-family:'Noto Sans KR',sans-serif; font-size:12.5px; font-weight:700; color:var(--navy); cursor:pointer;
+}
+.o-price-input{
+  width:92px; text-align:right; font-family:'JetBrains Mono',monospace; font-weight:700;
+  border:1.5px solid var(--sand-line); border-radius:9px; padding:7px 9px; font-size:12.5px; color:var(--navy);
+}
+.o-price-input:focus{outline:none; border-color:var(--navy);}
+.o-menu-row{
+  display:flex; align-items:center; gap:10px; padding:11px 2px; border-bottom:1px solid var(--sand-line);
+}
+.o-menu-row:last-child{border-bottom:none;}
+.o-menu-name{flex:1; font-size:13px; font-weight:700; color:var(--ink); min-width:0;}
+.o-menu-name .so{font-size:9.5px; color:var(--coral-dark); font-weight:800; margin-left:5px;}
+.o-review{border:1px solid var(--sand-line); border-radius:14px; padding:13px; margin-bottom:10px; background:var(--paper);}
+.o-review-head{display:flex; align-items:center; gap:8px; font-size:12px; font-weight:800; color:var(--navy); margin-bottom:5px;}
+.o-review-head .star{font-size:11px;}
+.o-review-text{font-size:12.5px; color:var(--ink); line-height:1.6;}
+.o-reply-box{margin-top:10px; display:flex; gap:7px;}
+.o-reply-done{
+  margin-top:9px; background:var(--cream); border-left:3px solid var(--teal); border-radius:9px;
+  padding:9px 11px; font-size:11.5px; color:var(--ink); line-height:1.55;
+}
+.o-reply-done .who{font-size:10.5px; font-weight:800; color:var(--teal-dark); margin-bottom:2px;}
+.o-banner{
+  position:absolute; top:44px; left:50%; transform:translateX(-50%); width:88%; z-index:80;
+  background:var(--navy); color:var(--cream); border-radius:16px; padding:13px 15px;
+  display:flex; gap:11px; align-items:center; box-shadow:0 14px 36px rgba(0,0,0,0.45);
+  border:1px solid rgba(255,255,255,0.14);
+  animation:slideDownC .35s;
+}
+.o-banner .bell{
+  width:40px; height:40px; border-radius:12px; background:var(--coral); display:flex; align-items:center; justify-content:center;
+  font-size:19px; flex-shrink:0; animation:ringShake .7s ease-in-out 2;
+}
+@keyframes ringShake{0%,100%{transform:rotate(0);}20%{transform:rotate(-14deg);}40%{transform:rotate(11deg);}60%{transform:rotate(-8deg);}80%{transform:rotate(5deg);}}
+.o-banner .tx{flex:1; min-width:0;}
+.o-banner .t1{font-size:14.5px; font-weight:900; color:#FFB4A0;}
+.o-banner .t2{font-size:11.5px; color:var(--cream); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.o-banner .go{
+  background:var(--coral); border:none; color:#fff; font-weight:800; font-size:11.5px;
+  border-radius:10px; padding:9px 13px; cursor:pointer; flex-shrink:0; font-family:'Noto Sans KR',sans-serif;
+}
+.o-banner .x{
+  background:none; border:none; color:var(--slate-light); font-size:15px; cursor:pointer; padding:4px; flex-shrink:0;
+}
+.o-chart-wrap{position:relative;}
+.o-legend{display:flex; gap:14px; margin-bottom:8px;}
+.o-legend div{display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--slate);}
+.o-legend .sw{width:10px; height:10px; border-radius:3px;}
+.o-tip{
+  position:absolute; pointer-events:none; background:var(--navy); color:var(--cream);
+  border-radius:10px; padding:8px 11px; font-size:11px; line-height:1.6; z-index:30;
+  box-shadow:0 8px 22px rgba(0,0,0,0.3); white-space:nowrap; display:none;
+}
+.o-tip b{color:#7FE3D6; font-family:'JetBrains Mono',monospace;}
+.o-settle-row{
+  display:flex; align-items:center; gap:10px; padding:11px 2px; border-bottom:1px solid var(--sand-line); font-size:12.5px;
+}
+.o-settle-row:last-child{border-bottom:none;}
+.o-settle-row .d{color:var(--slate); font-family:'JetBrains Mono',monospace; font-size:11px; width:82px; flex-shrink:0;}
+.o-settle-row .n{flex:1; font-weight:700; color:var(--ink);}
+.o-settle-row .a{font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--navy);}
+.o-hours-row{display:flex; align-items:center; gap:8px;}
+.o-hours-row .tilde{color:var(--slate-light); font-weight:700;}
+.o-label-sm{font-size:11px; font-weight:800; color:var(--slate); margin-bottom:6px; display:block;}
+.o-locker-visual{display:flex; gap:5px; flex-wrap:wrap; margin-top:10px;}
+.o-locker-cell{
+  width:34px; height:34px; border-radius:8px; border:1.5px solid var(--sand-line);
+  display:flex; align-items:center; justify-content:center; font-size:14px; background:var(--cream);
+}
+.o-locker-cell.used{background:var(--navy); border-color:var(--navy);}
+@media(max-width:1120px){
+  .stage{flex-direction:column; align-items:center;}
+  .link-indicator{flex-direction:row;}
+  .link-indicator .arrows{transform:rotate(90deg);}
+}
+</style>
+</head>
+<body>
+<div class="demo-head">
+  <div class="t display">짐투고 <span style="color:#7FE3D6;">듀얼 플랫폼</span> 연동 데모</div>
+  <div class="s">왼쪽 <b>소비자 앱</b>에서 캐리어보관 예약을 결제하면 → 오른쪽 <b>사장님 앱</b>에 <b>"짐투고 예약!"</b> 알림이 실시간으로 도착해요.<br>사장님이 보관함을 배정하고 수락하면 소비자 화면의 예약이 즉시 확정됩니다. (수락 · 거절 · 쿠폰 잔여개수(프리미엄 제외 최대 10장) · 품절 · 공지 · 리뷰답글 모두 양방향 반영)</div>
+</div>
+<div class="stage">
+  <div class="frame-col">
+    <div class="frame-label"><span class="dot" style="background:var(--coral);"></span>소비자 앱 · 여행자</div>
+    <div class="phone">
+      <div class="statusbar">
+        <span>09:41</span>
+        <span>짐투고 · 부산</span>
+        <span>100%</span>
+      </div>
+      <div id="c-appbar" class="appbar"></div>
+      <div id="c-content" class="content"></div>
+      <div id="c-tabbar" class="tabbar"></div>
+      <div id="c-modal"></div>
+      <div id="c-toast"></div>
+    </div>
+  </div>
+  <div class="link-indicator">
+    <div class="arrows">⇄</div>
+    <div>실시간 연동<br>REALTIME SYNC</div>
+  </div>
+  <div class="frame-col">
+    <div class="frame-label"><span class="dot" style="background:var(--teal);"></span>사장님 앱 · 가맹점 파트너</div>
+    <div class="tablet">
+      <div class="statusbar">
+        <span>09:41</span>
+        <span>짐투고 파트너</span>
+        <span>100%</span>
+      </div>
+      <div id="o-header" class="o-header"></div>
+      <div class="o-body">
+        <div id="o-rail" class="o-rail"></div>
+        <div id="o-content" class="o-content"></div>
+      </div>
+      <div id="o-banner"></div>
+      <div id="o-modal"></div>
+    </div>
+  </div>
+</div>
+<script>
+/* ==================================================================
+   공유 데이터 (소비자 앱 ⇄ 사장님 앱이 같은 객체를 바라봄 = 실시간 연동)
+   ================================================================== */
+const ICO = {
+  back: `<svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  bag: `<svg viewBox="0 0 24 24" fill="none" width="16" height="16"><rect x="5" y="8" width="14" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="2"/></svg>`,
+  clock: `<svg viewBox="0 0 24 24" fill="none" width="14" height="14"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+  home: `<svg viewBox="0 0 24 24" fill="none" width="19" height="19"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1v-8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
+  heart: `<svg viewBox="0 0 24 24" fill="none" width="19" height="19"><path d="M12 20s-7-4.4-9.3-8.6C1.2 8 3 5 6.3 5 8.4 5 10.4 6.2 12 8c1.6-1.8 3.6-3 5.7-3 3.3 0 5.1 3 3.6 6.4C19 15.6 12 20 12 20z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
+  ticket: `<svg viewBox="0 0 24 24" fill="none" width="19" height="19"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
+  user: `<svg viewBox="0 0 24 24" fill="none" width="19" height="19"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c1.5-4 5-6 8-6s6.5 2 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" width="30" height="30"><path d="M5 13l5 5L20 7" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  crown: `<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-1.6 10H4.6L3 8z"/><circle cx="3" cy="7" r="1.6"/><circle cx="12" cy="4" r="1.6"/><circle cx="21" cy="7" r="1.6"/></svg>`
+};
+const STORES = [
+{id:'gonguk', name:'곤국', cat:'음식점', emoji:'🍲', color:'#F0DCC4', area:'수영로', addr:'부산 수영구 수영로 506 광안더샵 상가동 1동 3호',
+ rating:4.8, reviews:542, open:10.5, close:21, luggageTotal:5, luggageAvail:3,
+ menu:[{n:'얼큰곤이탕',p:12000},{n:'수육',p:18000},{n:'공기밥',p:1000}],
+ revs:[{u:'j_traveler',r:5,t:'국물이 진하고 캐리어까지 맡아줘서 편했어요.'},{u:'busan_local',r:4,t:'재료가 신선하고 양이 넉넉해요.'}],
+ pos:{x:78,y:18}},
+{id:'chohit', name:'초힛사츠', cat:'음식점', emoji:'🍱', color:'#E9D4C0', area:'광남로', addr:'부산 수영구 광남로 74 1층',
+ rating:4.6, reviews:321, open:11.5, close:21.5, luggageTotal:4, luggageAvail:2,
+ menu:[{n:'히레카츠 정식',p:15000},{n:'로스카츠 정식',p:14000},{n:'카레카츠',p:13000}],
+ revs:[{u:'katsu_lover',r:5,t:'튀김옷이 바삭하고 육즙이 살아있어요.'},{u:'seaside_walk',r:4,t:'짐 맡기고 여유롭게 식사했습니다.'}],
+ pos:{x:32,y:50}},
+{id:'jukrim', name:'죽림숯불돼지', cat:'음식점', emoji:'🥩', color:'#E7CFC0', area:'광남로', addr:'부산 수영구 광남로 71 1층',
+ rating:4.7, reviews:890, open:16, close:24, luggageTotal:6, luggageAvail:4,
+ menu:[{n:'숯불생목살',p:15000},{n:'삼겹살',p:14000},{n:'냉면',p:8000}],
+ revs:[{u:'grill_fan',r:5,t:'숯불향이 진하고 고기 질이 좋아요.'},{u:'night_owl_bs',r:5,t:'늦게까지 열어서 야식으로 딱이에요.'}],
+ pos:{x:40,y:47}},
+{id:'daidokoro', name:'다이도코로', cat:'음식점', emoji:'🍶', color:'#EAD9C9', area:'남천동로108번길', addr:'부산 수영구 남천동로108번길 27 2층',
+ rating:4.9, reviews:410, open:17, close:23, luggageTotal:3, luggageAvail:2,
+ menu:[{n:'오마카세 밥상',p:25000},{n:'사시미 모듬',p:20000},{n:'사케 1잔',p:8000}],
+ revs:[{u:'omakase_bs',r:5,t:'구성이 알차고 플레이팅이 정갈해요.'},{u:'quiet_dinner',r:5,t:'2층이라 조용히 식사하기 좋아요.'}],
+ pos:{x:57,y:62}},
+{id:'bcbl', name:'BCBL', cat:'카페', emoji:'☕', color:'#E4C9A6', area:'남천동로108번길', addr:'부산 수영구 남천동로108번길 49 협진태양아파트 상가3동',
+ rating:4.5, reviews:210, open:9, close:21, luggageTotal:5, luggageAvail:3,
+ menu:[{n:'브런치 세트',p:11000},{n:'아메리카노',p:4500},{n:'크루아상',p:4800}],
+ revs:[{u:'cafe_hopping',r:4,t:'좌석이 넓고 콘센트가 많아 작업하기 좋아요.'},{u:'namcheon_am',r:5,t:'브런치 플레이팅이 예쁘고 맛도 좋아요.'}],
+ pos:{x:62,y:68}},
+{id:'hiro', name:'히로', cat:'음식점', emoji:'🍣', color:'#EAD2C6', area:'남천바다로10번길', addr:'부산 수영구 남천바다로10번길 48-5 1층',
+ rating:4.7, reviews:654, open:12, close:22, luggageTotal:8, luggageAvail:5,
+ menu:[{n:'특선초밥',p:18000},{n:'우동 세트',p:12000},{n:'가라아게',p:9000}],
+ revs:[{u:'sushi_bs',r:5,t:'재료가 신선하고 양이 푸짐해요.'},{u:'gwangalli_trip',r:4,t:'캐리어 큰 것도 맡길 수 있어서 좋았어요.'}],
+ pos:{x:22,y:71}},
+{id:'onjeong', name:'온정', cat:'카페', emoji:'🫖', color:'#E6CBAE', area:'남천동로108번길', addr:'부산 수영구 남천동로108번길 52 1층',
+ rating:4.4, reviews:156, open:10, close:20, luggageTotal:4, luggageAvail:2,
+ menu:[{n:'티타임 세트',p:11000},{n:'핸드드립',p:7000},{n:'스콘',p:5000}],
+ revs:[{u:'warm_afternoon',r:4,t:'분위기가 아늑하고 사장님이 친절해요.'},{u:'tea_time_bs',r:5,t:'스콘이 갓 구운 듯 따뜻했어요.'}],
+ pos:{x:60,y:75}},
+{id:'selecto', name:'셀렉토커피', cat:'카페', emoji:'🥐', color:'#E9D0AC', area:'남천바다로9번길', addr:'부산 수영구 남천바다로9번길 4 1층',
+ rating:4.3, reviews:380, open:8, close:22, luggageTotal:6, luggageAvail:4,
+ menu:[{n:'브런치 세트',p:10500},{n:'카페라떼',p:5000},{n:'베이글',p:4500}],
+ revs:[{u:'ocean_view_cafe',r:4,t:'창가 자리에서 바다가 보여요.'},{u:'coffee_daily',r:4,t:'원두가 산미보다 고소한 편이에요.'}],
+ pos:{x:30,y:78}},
+{id:'idae', name:'이대명과', cat:'카페', emoji:'🍡', color:'#EBD6B8', area:'광남로48번길', addr:'부산 수영구 광남로48번길 19 1층',
+ rating:4.6, reviews:275, open:9, close:21, luggageTotal:4, luggageAvail:3,
+ menu:[{n:'약과 티세트',p:12000},{n:'모나카',p:4500},{n:'아메리카노',p:4000}],
+ revs:[{u:'dessert_hunter',r:5,t:'약과가 덜 달고 은은한 단맛이에요.'},{u:'gift_shopper',r:4,t:'포장 선물용으로도 사기 좋아요.'}],
+ pos:{x:50,y:44}},
+{id:'cherryssi', name:'체리씨', cat:'카페', emoji:'🍒', color:'#EFC9C4', area:'남천바다로9번길', addr:'부산 수영구 남천바다로9번길 16 풍신빌라 1층 102호',
+ rating:4.5, reviews:98, open:11, close:19, luggageTotal:3, luggageAvail:2,
+ menu:[{n:'체리 디저트 세트',p:11500},{n:'티라미수',p:6500},{n:'아이스티',p:4500}],
+ revs:[{u:'small_shop_fan',r:5,t:'작지만 디저트 퀄리티가 좋아요.'},{u:'sweet_tooth_bs',r:4,t:'타르트가 새콤달콤 딱 좋아요.'}],
+ pos:{x:24,y:85}},
+{id:'suryeon', name:'수련회', cat:'음식점', emoji:'🍢', color:'#E3CCC0', area:'광남로', addr:'부산 수영구 광남로 81 1층',
+ rating:4.6, reviews:512, open:17, close:25, luggageTotal:5, luggageAvail:4,
+ menu:[{n:'안주모둠',p:25000},{n:'하이볼',p:8000},{n:'골뱅이무침',p:15000}],
+ revs:[{u:'night_bar_bs',r:5,t:'안주 구성이 알차고 분위기가 좋아요.'},{u:'friends_gwangan',r:4,t:'짐 맡기고 늦게까지 놀기 좋았어요.'}],
+ pos:{x:62,y:47}},
+{id:'coffee1849', name:'커피광안1849', cat:'카페', emoji:'🌊', color:'#DCC9A0', area:'광남로83번길', addr:'부산 수영구 광남로83번길 4',
+ rating:4.7, reviews:620, open:8, close:23, luggageTotal:10, luggageAvail:6,
+ menu:[{n:'오션뷰 세트',p:10500},{n:'카페라떼',p:5000},{n:'크로플',p:6000}],
+ revs:[{u:'sunset_gwangan',r:5,t:'광안대교 뷰가 정말 예뻐요.'},{u:'roadtrip_bs',r:5,t:'짐 맡기고 해변 산책하기 좋았어요.'}],
+ pos:{x:70,y:40}}
+];
+const PARTNER_IDS = ['gonguk','hiro'];
+/* 사장님 앱에서 다루는 동적 필드 초기화 */
+STORES.forEach((s,i)=>{
+  s.notice = '';
+  s.tempClosed = false;
+  s.menu.forEach(m=> m.soldOut = false);
+  s.revs.forEach((r,idx)=> r.reply = null);
+  /* 프리미엄(곤국·히로) 제외 매장: 하루 쿠폰 발행 최대 10장 제한 */
+  if(!['gonguk','hiro'].includes(s.id)){
+    s.couponMax = 10;
+    s.couponSold = 2 + ((i*3)%6);   /* 데모용: 이미 2~7장 판매된 상태 */
+  }
+});
+function couponLeft(s){ return s.couponMax ? Math.max(0, s.couponMax - s.couponSold) : Infinity; }
+function coupValid(storeId){ return PARTNER_IDS.includes(storeId) ? '발급일로부터 30일' : '발급일로부터 24시간'; }
+/* 데모 초기값: 곤국에 답글 대기 리뷰가 있는 상태처럼 보이게 */
+store2('hiro').revs[0].reply = '방문해 주셔서 감사합니다! 항상 신선한 재료로 준비하겠습니다 🙏';
+function store2(id){return STORES.find(s=>s.id===id);}
+/* ---- 공유 이벤트 버스: 예약/결제 주문이 여기 쌓이고 양쪽 앱이 함께 읽음 ---- */
+const LINK = { orders: [] };
+const DUR = {'1h':{label:'1시간',fee:2000},'2h':{label:'2시간',fee:3000},'3h':{label:'3시간',fee:4000},'4h':{label:'4시간',fee:5000},'5h':{label:'5시간',fee:6000}};
+function fmt(n){return n.toLocaleString('ko-KR');}
+function store(id){return STORES.find(s=>s.id===id);}
+function nowHour(){ const d=new Date(); return d.getHours()+d.getMinutes()/60; }
+function nowTimeStr(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function isOpen(s){
+  if(s.tempClosed) return false;
+  const h=nowHour();
+  if(s.close>24){ return h>=s.open || h < (s.close-24); }
+  return h>=s.open && h<s.close;
+}
+function fmtHour(h){
+  const hh=Math.floor(h%24); const mm=(h%1)*60;
+  return (hh<10?'0':'')+hh+':'+(mm===0?'00':Math.round(mm));
+}
+function stPill(status){
+  if(status==='pending') return `<span class="pill wait">⏳ 사장님 확인중</span>`;
+  if(status==='accepted') return `<span class="pill ok">✓ 예약확정</span>`;
+  if(status==='rejected') return `<span class="pill no">✕ 접수불가</span>`;
+  return `<span class="pill ok">결제완료</span>`;
+}
+/* ==================================================================
+   소비자 앱 (기존 코드 기반 + 사장님 승인 흐름으로 확장)
+   ================================================================== */
+const state = {
+  appMode:null, tab:'home', filterCat:'all',
+  onlyPartnerStorage:false, onlyPartnerCoupon:false,
+  coupSel:[], payModal:false, bookModal:false,
+  rouletteRunning:false, rouletteWinner:null,
+  screen:'list', storeId:null,
+  booking:{mode:null, luggage:1, duration:'1h'},
+  bookings:[
+    {code:'JM-8841', storeId:'coffee1849', kind:'storage', luggage:1, total:3000, date:'07/08', time:'14:20', status:'accepted', assigned:1, until:'17:00까지'}
+  ],
+  coupons:[], loggedIn:false,
+  saved:['hiro','coffee1849','daidokoro']
+};
+function onlyPartnerNow(){ return state.appMode==='coupon' ? state.onlyPartnerCoupon : state.onlyPartnerStorage; }
+function toastC(msg, icon){
+  const el = document.getElementById('c-toast');
+  el.innerHTML = `<div class="c-toast">${icon||'🔔'} <span>${msg}</span></div>`;
+  clearTimeout(toastC._t);
+  toastC._t = setTimeout(()=>{ el.innerHTML=''; }, 4200);
+}
+/* ---------- 소비자: 앱바 ---------- */
+function renderAppbar(){
+  const el = document.getElementById('c-appbar');
+  const infoBtn = `<button class="info-btn" onclick="openMyInfo()">내정보</button>`;
+  if(state.screen==='myinfo' || state.screen==='couponbox' || state.screen==='terms' || state.screen==='coupondetail' || state.screen==='mybookings' || state.screen==='bookingdetail'){
+    const backFn = state.screen==='myinfo' ? 'closeMyInfo()'
+      : state.screen==='terms' ? 'openMyInfo()'
+      : state.screen==='coupondetail' ? 'openCouponBox(true)'
+      : state.screen==='mybookings' ? 'openMyInfo()'
+      : state.screen==='bookingdetail' ? 'backFromBookingDetail()'
+      : (state.couponBoxFrom==='myinfo'?'openMyInfo()':'closeMyInfo()');
+    const title = state.screen==='myinfo' ? '내 정보' : state.screen==='terms' ? '이용약관' : state.screen==='coupondetail' ? '쿠폰 상세' : state.screen==='mybookings' ? '예약확인' : state.screen==='bookingdetail' ? '예약 상세 · 캐리어 촬영' : '쿠폰보관함';
+    el.innerHTML = `<div class="appbar-row"><button class="back-btn" onclick="${backFn}">${ICO.back}</button><div class="appbar-title">${title}</div></div>`;
+    return;
+  }
+  if(!state.appMode){
+    el.innerHTML = `
+      <div class="brand">
+        <div class="brand-mark">${ICO.bag.replace('currentColor','#0B2942')}</div>
+        <div><div class="brand-title display">짐투고</div><div class="brand-sub">부산 광안리 · 남천동 짐보관 서비스</div></div>
+      </div>${infoBtn}`;
+    return;
+  }
+  if(state.appMode==='coupon' && state.screen==='list'){
+    const cTitles = {home:'쿠폰', saved:'저장한 매장', bookings:'내 예약', profile:'내 정보 · 쿠폰보관함'};
+    el.innerHTML = `<div class="appbar-row"><button class="back-btn" onclick="goEntry()">${ICO.back}</button><div class="appbar-title">${cTitles[state.tab]||'쿠폰'}</div></div>${infoBtn}`;
+    return;
+  }
+  if(state.screen==='detail' || state.screen==='booking' || state.screen==='couponpay'){
+    const s = store(state.storeId);
+    const t = state.screen==='booking' ? '예약 · '+s.name : state.screen==='couponpay' ? '결제 · '+s.name : s.name;
+    el.innerHTML = `<div class="appbar-row"><button class="back-btn" onclick="goBack()">${ICO.back}</button><div class="appbar-title">${t}</div></div>`;
+    return;
+  }
+  if(state.screen==='confirm'){
+    const bk = state.bookings[0];
+    const t = bk.kind==='coupon' ? '결제 완료' : (bk.status==='pending' ? '예약 요청됨' : bk.status==='accepted' ? '예약 확정' : '예약 결과');
+    el.innerHTML = `<div class="appbar-row"><div class="appbar-title">${t}</div></div>`;
+    return;
+  }
+  const titles = {home:'', saved:'저장한 매장', bookings:'내 예약', profile:'내 정보'};
+  if(state.tab==='home'){
+    el.innerHTML = `
+      <div class="appbar-row">
+        <button class="back-btn" onclick="goEntry()">${ICO.back}</button>
+        <div class="brand">
+          <div class="brand-mark">${ICO.bag.replace('currentColor','#0B2942')}</div>
+          <div><div class="brand-title display">짐투고</div><div class="brand-sub">부산 광안리 · 남천동 짐보관 매장 지도</div></div>
+        </div>
+      </div>${infoBtn}`;
+  } else {
+    el.innerHTML = `<div class="appbar-row"><div class="appbar-title">${titles[state.tab]}</div></div>`;
+  }
+}
+/* ---------- 소비자: 지도 ---------- */
+function renderMap(){
+  const base = onlyPartnerNow() ? STORES.filter(s => PARTNER_IDS.includes(s.id)) : STORES;
+  const catFiltered = base.filter(s => state.filterCat==='all' || s.cat===state.filterCat);
+  let pins = '';
+  catFiltered.forEach(s=>{
+    const isA = PARTNER_IDS.includes(s.id);
+    pins += `<div class="pin ${isA?'partner':''}" style="left:${s.pos.x}%; top:${s.pos.y}%;" onclick="storeTap('${s.id}')">
+      <div class="pin-dot">${isA ? ICO.crown.replace('currentColor','white') : ICO.bag.replace('currentColor','white')}</div>
+      <div class="pin-tip">${isA?'👑 ':''}${s.name}</div>
+    </div>`;
+  });
+  return `
+  <div class="map-wrap">
+    <svg class="map-svg" viewBox="0 0 340 230" preserveAspectRatio="none">
+      <rect width="340" height="230" fill="#DCEAE8"/>
+      <path d="M0,150 C60,120 100,180 160,160 C220,140 260,190 340,175 L340,230 L0,230 Z" fill="#BFE0DC"/>
+      <path d="M0,155 C60,126 100,184 160,165 C220,146 260,194 340,180" stroke="#8FCFC7" stroke-width="2" fill="none"/>
+      <path d="M235 30 L225 210" stroke="#F3ECD9" stroke-width="10" opacity="0.8"/>
+      <path d="M40 130 L320 95" stroke="#F3ECD9" stroke-width="8" opacity="0.7"/>
+      <path d="M60 60 L300 190" stroke="#F3ECD9" stroke-width="6" opacity="0.5"/>
+    </svg>
+    <div class="map-label" style="left:5%; top:82%;">광안리해변 ~</div>
+    <div class="map-label" style="left:76%; top:6%;">수영로</div>
+    <div class="map-label" style="left:14%; top:52%;">광남로</div>
+    ${pins}
+    <div class="map-legend">
+      <div><span class="legend-dot" style="background:#E8A93C"></span>👑 프리미엄 가맹점</div>
+      <div><span class="legend-dot" style="background:var(--coral)"></span>짐보관 가맹점</div>
+    </div>
+  </div>`;
+}
+/* ---------- 소비자: 홈 ---------- */
+function storeCards(list){
+  return list.map(s=>{
+    const open = isOpen(s);
+    const openLabel = s.tempClosed ? '임시휴무' : (open?'영업중':'영업종료');
+    return `
+    <div class="store-card" onclick="openDetail('${s.id}')">
+      <div class="store-thumb" style="background:${s.color}">${s.emoji}</div>
+      <div class="store-info">
+        <div class="store-top"><div class="store-name">${s.name}</div></div>
+        <div class="store-meta"><span class="star">★</span> ${s.rating.toFixed(1)} · 리뷰 ${s.reviews} · ${s.cat}</div>
+        <div class="store-addr">${s.addr}</div>
+        <div class="store-bottom">
+          <span class="pill ${open?'open':'closed'}">${openLabel} · ${fmtHour(s.open)}-${fmtHour(s.close>24?s.close-24:s.close)}</span>
+          ${state.appMode==='coupon' ? '' : `<span class="pill stock">캐리어 ${s.luggageAvail}/${s.luggageTotal} 보관가능</span>`}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderHome(){
+  const cats = [['all','전체'],['음식점','음식점'],['카페','카페']];
+  const chips = cats.map(([v,l])=>`<div class="chip ${state.filterCat===v?'active':''}" onclick="setCat('${v}')">${l}</div>`).join('');
+  const list = STORES.filter(s => state.filterCat==='all' || s.cat===state.filterCat);
+  return `
+    ${renderMap()}
+    <div class="filter-row">${chips}</div>
+    <div class="section-head">
+      <div class="section-title">광안리·남천동 짐보관 매장</div>
+      <div class="section-count mono">${list.length}곳</div>
+    </div>
+    <div class="store-list">${storeCards(list)}</div>`;
+}
+/* ---------- 소비자: 매장 상세 ---------- */
+function renderDetail(){
+  const s = store(state.storeId);
+  const open = isOpen(s);
+  const hours = [10,12,14,16,18,20,22];
+  const crowd = {gonguk:[30,70,55,25,40,80,60], chohit:[20,60,80,30,35,70,50], jukrim:[10,15,20,25,40,90,95],
+    daidokoro:[5,5,10,20,55,90,85], bcbl:[40,75,50,30,45,60,35], hiro:[15,55,70,40,50,85,75],
+    onjeong:[25,60,45,35,50,40,10], selecto:[35,80,60,40,55,65,50], idae:[20,55,65,45,50,55,30],
+    cherryssi:[10,45,60,50,40,20,5], suryeon:[5,5,5,10,45,85,95], coffee1849:[30,65,55,45,70,90,80]};
+  const bars = crowd[s.id];
+  const curHourIdx = hours.reduce((best,h,i)=> Math.abs(h-nowHour())<Math.abs(hours[best]-nowHour())?i:best,0);
+  return `
+  <div class="hero" style="background:linear-gradient(135deg, ${s.color} 0%, #C9AE86 100%);">
+    <div class="hero-badges"><span class="tag-badge">짐보관 가맹점</span></div>
+    <div class="hero-title display">${s.emoji} ${s.name}</div>
+  </div>
+  <div class="detail-body">
+    <div class="rating-row"><span class="star">★</span> <b style="color:var(--ink)">${s.rating.toFixed(1)}</b> · 방명록 ${s.reviews}개 · ${s.cat} · ${s.area}</div>
+    <div class="addr-row">📍 ${s.addr}</div>
+    <div class="hours-row" style="color:${open?'var(--teal-dark)':'var(--slate)'}">
+      ${ICO.clock} <b>${s.tempClosed?'임시휴무':(open?'영업중':'영업종료')}</b> · 매일 ${fmtHour(s.open)} - ${fmtHour(s.close>24?s.close-24:s.close)}
+    </div>
+    ${s.notice ? `<div class="notice-banner">📢 <div><b>사장님 공지</b> · ${s.notice}</div></div>` : ''}
+    <div class="stat-strip">
+      ${state.appMode==='coupon' ? '' : `<div class="stat-box"><div class="num">${s.luggageAvail}/${s.luggageTotal}</div><div class="lbl">캐리어 보관가능</div></div>`}
+      <div class="stat-box"><div class="num">${s.reviews}</div><div class="lbl">방명록</div></div>
+      <div class="stat-box"><div class="num">${s.rating.toFixed(1)}</div><div class="lbl">평점</div></div>
+    </div>
+    <div class="section-title" style="margin:16px 0 4px;">시간대별 혼잡도</div>
+    <div class="crowd-chart">${bars.map((b,i)=>`<div class="crowd-bar ${i===curHourIdx?'now':''}" style="height:${b}%"></div>`).join('')}</div>
+    <div class="crowd-hours">${hours.map(h=>`<span>${h}시</span>`).join('')}</div>
+    ${state.appMode==='coupon' ? `
+    <div class="discount-banner">
+      <div class="discount-eyebrow">짐투고 쿠폰</div>
+      <div class="discount-menu-name">메뉴할인권</div>
+      <div class="discount-price-row"><span class="price-save">매장 메뉴 주문 시 할인</span>
+      ${PARTNER_IDS.includes(s.id) ? '' : `<span style="font-size:11px; color:${couponLeft(s)<=2?'#FFB4A0':'#7FE3D6'}; font-weight:800; margin-left:auto;" class="mono">오늘 잔여 ${couponLeft(s)}/${s.couponMax}장</span>`}</div>
+    </div>` : ''}
+    <div class="section-title" style="margin-bottom:6px;">매장 메뉴</div>
+    <div class="menu-list">
+      ${s.menu.map(m=>`<div class="menu-item ${m.soldOut?'soldout':''}">
+        <span>${m.n}${m.soldOut?'<span class="soldout-badge">오늘 품절</span>':''}</span>
+        <span class="price mono">${fmt(m.p)}원</span>
+      </div>`).join('')}
+    </div>
+    <div class="section-title" style="margin-bottom:6px;">방명록</div>
+    <div class="review-scroll">
+      ${s.revs.map(r=>`<div class="review-card">
+        <div class="review-head"><span>${r.u}</span><span class="star">${'★'.repeat(r.r)}</span></div>
+        <div class="review-text">${r.t}</div>
+        ${r.reply ? `<div class="review-reply"><div class="who">↳ 사장님 답글</div>${r.reply}</div>` : ''}
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="sticky-cta">
+    ${state.appMode==='coupon'
+      ? (!PARTNER_IDS.includes(s.id) && couponLeft(s)<=0
+          ? `<button class="btn btn-full" disabled>오늘 쿠폰 소진 (0/${s.couponMax})</button>`
+          : `<button class="btn btn-full" onclick="startCouponPay()">결제</button>`)
+      : (s.luggageAvail<=0
+          ? `<button class="btn btn-full" disabled>보관함이 가득 찼어요</button>`
+          : `<button class="btn btn-full" onclick="startBooking('storage')">캐리어보관</button>`)}
+  </div>`;
+}
+/* ---------- 소비자: 쿠폰 결제 ---------- */
+function renderCouponPay(){
+  const s = store(state.storeId);
+  const isA = PARTNER_IDS.includes(s.id);
+  const disc = isA ? 5000 : 2000;
+  const left = couponLeft(s);
+  const soldOut = !isA && left<=0;
+  return `
+  <div class="booking-summary">
+    <div style="font-size:26px;">${s.emoji}</div>
+    <div class="txt"><div class="store">${s.name}</div><div class="mode">메뉴할인권 · ${isA ? '[프리미엄] 5,000원 할인' : '2,000원 할인'}</div></div>
+    ${isA ? '' : `<span class="pill ${left<=2?'stock':'ok'}" style="background:rgba(255,255,255,0.14); color:${left<=2?'#FFB4A0':'#7FE3D6'};">오늘 잔여 ${left}/${s.couponMax}장</span>`}
+  </div>
+  <div class="summary-card">
+    <div class="summary-line"><span>메뉴할인권 (${isA ? '프리미엄' : '일반'})</span><b class="mono" style="color:var(--teal-dark);">-${fmt(disc)}원</b></div>
+    ${isA ? '' : `<div class="summary-line"><span>오늘 판매 가능 쿠폰</span><b class="mono">${left}장 남음 (최대 ${s.couponMax}장)</b></div>`}
+    <div class="summary-total"><span>총 결제금액</span><span class="amt">${isA?'5,000':'2,000'}원</span></div>
+  </div>
+  <div style="padding:0 18px 24px;">
+    ${soldOut
+      ? `<button class="btn btn-full" disabled>오늘 쿠폰이 모두 소진됐어요 (0/${s.couponMax})</button>`
+      : `<button class="btn btn-full" onclick="openPayModal()">결제하기</button>`}
+    <div class="notice-box">
+      <div class="notice-title">${isA ? '[프리미엄] 짐투고 매장 이용 5,000원 할인권' : '짐투고 매장 이용 2,000원 할인권'}</div>
+      <div class="notice-sub"><b>유의 사항:</b></div>
+      <ul>
+        <li>매장별 영업시간, 정기 휴무일, 브레이크 타임 및 당일 재료 소진 여부에 따라 사용이 제한될 수 있으므로 방문 전 매장 상세 정보를 꼭 확인해 주세요.</li>
+        <li>본 쿠폰은 제휴 매장 내 현장 취식 및 ${isA ? '대면 주문' : '테이크아웃(포장) 주문'} 시에만 적용되며, 배달 앱 주문이나 타사 할인 혜택, 매장 자체 프로모션 상품과는 중복 적용되지 않습니다.</li>
+        <li>쿠폰의 유효기간은 ${isA ? '<b>발급일로부터 30일</b>' : '<b>발급일로부터 24시간</b>'}이며, 기간 만료 후 재발급 및 타인에게의 양도·판매는 불가합니다.</li>
+        <li>현금으로 환불되거나 거스름돈이 반환되지 않는 잔액 소멸성 쿠폰입니다.</li>
+      </ul>
+    </div>
+  </div>`;
+}
+/* ---------- 소비자: 예약 폼 ---------- */
+function renderBooking(){
+  const s = store(state.storeId);
+  const b = state.booking;
+  const durFee = DUR[b.duration].fee * b.luggage;
+  return `
+  <div class="booking-summary">
+    <div style="font-size:26px;">${s.emoji}</div>
+    <div class="txt"><div class="store">${s.name}</div><div class="mode">캐리어보관 · 잔여 보관함 ${s.luggageAvail}개</div></div>
+  </div>
+  <div class="form-block">
+    <span class="form-label">캐리어 개수</span>
+    <div class="stepper">
+      <button class="step-btn" onclick="changeLuggage(-1)">−</button>
+      <div class="cnt mono">${b.luggage}</div>
+      <button class="step-btn" onclick="changeLuggage(1)">+</button>
+    </div>
+  </div>
+  <div class="form-block">
+    <span class="form-label">보관 시간</span>
+    <div class="duration-row">
+      ${Object.entries(DUR).map(([k,v])=>`
+        <div class="dur-opt ${b.duration===k?'active':''}" onclick="setDuration('${k}')">
+          ${v.label}<div class="sub mono">${fmt(v.fee)}원/개</div>
+        </div>`).join('')}
+    </div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-line"><span>보관료 (${DUR[b.duration].label} · ${b.luggage}개)</span><b class="mono">${fmt(durFee)}원</b></div>
+    <div class="summary-total"><span>총 결제금액</span><span class="amt">${fmt(durFee)}원</span></div>
+  </div>
+  <div style="padding:0 18px 24px;">
+    <button class="btn btn-full" onclick="openBookModal()">결제하고 예약 요청하기</button>
+    <div style="font-size:10.5px; color:var(--slate-light); text-align:center; margin-top:8px; line-height:1.6;">
+      결제 후 <b style="color:var(--slate)">사장님이 예약을 수락</b>하면 확정돼요.<br>거절 시 결제금액은 즉시 자동 환불됩니다.
+    </div>
+    <div class="notice-box">
+      <div class="notice-title">이용 시간 및 추가 요금 안내</div>
+      <ul>
+        <li>기본 제공 시간 초과 시, 30분당 750원의 추가 요금이 자동으로 부과됩니다.</li>
+        <li>원활한 가맹점 운영 및 다음 이용객을 위해 예약하신 보관 종료 시간을 준수해 주시기 바랍니다.</li>
+        <li>개점 및 폐점 시간은 매장별로 상이하므로, 반드시 방문 전 매장 상세 정보를 확인하시어 마감 시간 전까지 물품을 수거해 주세요.</li>
+      </ul>
+    </div>
+  </div>`;
+}
+/* ---------- 소비자: 예약/결제 완료 (사장님 수락 상태에 따라 실시간 변화) ---------- */
+function renderConfirm(){
+  const bk = state.bookings[0];
+  const s = store(bk.storeId);
+  const isC = bk.kind==='coupon';
+  if(isC){
+    return `
+    <div class="confirm-wrap">
+      <div class="confirm-check">${ICO.check}</div>
+      <div class="confirm-title">결제가 완료됐어요</div>
+      <div class="confirm-sub">매장에서 아래 번호를 직원에게 보여주시면<br>쿠폰 할인 적용을 확인받을 수 있어요.</div>
+      <div class="claim-tag">
+        <div class="claim-code">${bk.code}</div>
+        <div class="claim-store">${s.name} · ${bk.item}</div>
+        <div class="claim-meta"><span>쿠폰 할인 -${fmt(bk.disc)}원</span><span>결제완료</span></div>
+      </div>
+      <button class="btn btn-full" style="max-width:300px;" onclick="goHomeTab()">홈으로 돌아가기</button>
+    </div>`;
+  }
+  if(bk.status==='pending'){
+    return `
+    <div class="confirm-wrap">
+      <div class="confirm-check wait">⏳</div>
+      <div class="confirm-title">사장님이 확인하고 있어요</div>
+      <div class="confirm-sub">${s.name} 사장님께 예약 요청을 보냈어요.<br>수락되면 이 화면이 바로 예약확정으로 바뀝니다.</div>
+      <div class="claim-tag pending">
+        <div class="claim-code">${bk.code}</div>
+        <div class="claim-store">${s.name} · 캐리어보관 요청</div>
+        <div class="claim-meta"><span>캐리어 ${bk.luggage}개 · ${bk.durLabel}</span><span>수락 대기중</span></div>
+      </div>
+      <div style="font-size:11px; color:var(--slate-light); margin-bottom:16px;">→ 오른쪽 사장님 앱에서 수락/거절을 눌러보세요!</div>
+      <button class="btn btn-full" style="max-width:300px; background:var(--paper); color:var(--navy); border:1.5px solid var(--navy);" onclick="goHomeTab()">홈으로 돌아가기</button>
+    </div>`;
+  }
+  if(bk.status==='rejected'){
+    return `
+    <div class="confirm-wrap">
+      <div class="confirm-check no" style="font-size:24px; color:#fff;">✕</div>
+      <div class="confirm-title">예약이 접수되지 않았어요</div>
+      <div class="confirm-sub">사유: ${bk.rejectReason||'매장 사정'}<br>결제하신 ${fmt(bk.total)}원은 즉시 자동 환불됩니다.</div>
+      <div class="claim-tag pending">
+        <div class="claim-code">${bk.code}</div>
+        <div class="claim-store">${s.name} · 캐리어보관 요청</div>
+        <div class="claim-meta"><span>캐리어 ${bk.luggage}개</span><span>환불 완료</span></div>
+      </div>
+      <button class="btn btn-full" style="max-width:300px;" onclick="goHomeTab()">다른 매장 둘러보기</button>
+    </div>`;
+  }
+  return `
+  <div class="confirm-wrap">
+    <div class="confirm-check">${ICO.check}</div>
+    <div class="confirm-title">예약이 확정됐어요</div>
+    <div class="confirm-sub">사장님이 예약을 수락했어요! 매장 도착 후 아래<br>보관번호를 직원에게 보여주면 바로 짐을 맡길 수 있어요.</div>
+    <div class="claim-tag">
+      <div class="claim-code">${bk.code}</div>
+      <div class="claim-store">${s.name} · 캐리어보관</div>
+      <div class="claim-meta"><span>보관함 ${bk.assigned}개 배정 · ${bk.until||''}</span><span>${fmt(bk.total)}원 결제완료</span></div>
+    </div>
+    <button class="btn btn-full" style="max-width:300px;" onclick="goHomeTab()">홈으로 돌아가기</button>
+  </div>`;
+}
+/* ---------- 소비자: 모드선택 / 쿠폰 / 내정보 등 ---------- */
+function renderEntry(){
+  return `
+  <div class="entry-wrap">
+    <div class="entry-hello">
+      <div class="big display">무엇을 도와드릴까요?</div>
+      <div class="sub">원하시는 서비스를 선택해 주세요.</div>
+    </div>
+    <div class="entry-card" onclick="chooseMode('storage')">
+      <div class="entry-icon" style="background:rgba(31,158,144,0.12);">🧳</div>
+      <div><div class="t">짐보관</div><div class="d">광안리·남천동 가맹점에<br>캐리어를 맡겨보세요.</div></div>
+      <div class="entry-arrow">›</div>
+    </div>
+    <div class="entry-card" onclick="chooseMode('coupon')">
+      <div class="entry-icon" style="background:rgba(255,90,54,0.12);">🎟️</div>
+      <div><div class="t">짐투고마켓</div><div class="d">메뉴할인권을 구매하고<br>할인 혜택을 받아보세요.</div></div>
+      <div class="entry-arrow">›</div>
+    </div>
+  </div>`;
+}
+function renderCoupon(){
+  const toggleAndMap = `
+    <div class="toggle-row">
+      <div class="toggle-label">${ICO.bag} 프리미엄 가맹점 지도에 표시</div>
+      <div class="switch ${state.onlyPartnerCoupon?'on':''}" onclick="toggleOnlyPartner()"></div>
+    </div>
+    ${renderMap()}`;
+  if(state.onlyPartnerCoupon){
+    const list = STORES.filter(s => PARTNER_IDS.includes(s.id));
+    return `${toggleAndMap}
+      <div class="section-head"><div class="section-title">쿠폰 사용 가능 매장</div><div class="section-count mono">${list.length}곳</div></div>
+      <div class="store-list">${storeCards(list)}</div>`;
+  }
+  const candidates = STORES.filter(s => !PARTNER_IDS.includes(s.id));
+  const selCards = candidates.map(s=>{
+    const selIdx = state.coupSel.indexOf(s.id);
+    const open = isOpen(s);
+    return `
+    <div class="store-card ${selIdx>=0?'sel':''}" onclick="toggleSelect('${s.id}')">
+      <div class="store-thumb" style="background:${s.color}">${s.emoji}</div>
+      <div class="store-info">
+        <div class="store-top"><div class="store-name">${s.name}</div>${selIdx>=0?`<div class="sel-num">${selIdx+1}</div>`:''}</div>
+        <div class="store-meta"><span class="star">★</span> ${s.rating.toFixed(1)} · 리뷰 ${s.reviews} · ${s.cat}</div>
+        <div class="store-addr">${s.addr}</div>
+        <div class="store-bottom"><span class="pill ${open?'open':'closed'}">${open?'영업중':'영업종료'} · ${fmtHour(s.open)}-${fmtHour(s.close>24?s.close-24:s.close)}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+  return `${toggleAndMap}
+    <div class="section-head"><div class="section-title">룰렛으로 매장 정하기</div><div class="section-count mono">${state.coupSel.length}/2 선택</div></div>
+    <div class="roulette-box">
+      ${state.coupSel.length===0
+        ? `<div class="roulette-empty">아래에서 마음에 드는 매장을 <b>최대 2개</b>까지 선택해 주세요.<br>룰렛이 돌아가며 오늘의 매장 1곳을 골라드려요!</div>`
+        : `<div class="roulette-list">${state.coupSel.map(id=>`<div class="roulette-item ${state.rouletteWinner===id?'win':''}">${store(id).emoji} ${store(id).name}</div>`).join('')}</div>`}
+      ${state.rouletteWinner
+        ? `<div class="roulette-result">🎉 오늘의 매장은 <b>${store(state.rouletteWinner).name}</b>!</div>
+           <button class="btn btn-full" onclick="openDetail('${state.rouletteWinner}')">이 매장에서 쿠폰 결제하기</button>`
+        : `<button class="btn btn-full" ${state.coupSel.length<2||state.rouletteRunning?'disabled':''} onclick="spinRoulette()">${state.rouletteRunning?'룰렛 돌아가는 중...':'룰렛 돌리기'}</button>
+           ${state.coupSel.length<2?`<div class="roulette-hint">매장을 2개 선택하면 룰렛을 돌릴 수 있어요.</div>`:''}`}
+    </div>
+    <div class="section-head"><div class="section-title">쿠폰 사용 가능 매장 (프리미엄 제외 · 최대 2개 선택)</div><div class="section-count mono">${candidates.length}곳</div></div>
+    <div class="store-list">${selCards}</div>`;
+}
+function renderMyInfo(){
+  const myCoupons = state.coupons.filter(c=>c.src==='coupon');
+  const menuRow = (icon, title, sub, onclick) => `
+  <div class="simple-card" onclick="${onclick}" style="display:flex; align-items:center; gap:12px; cursor:pointer; margin-bottom:0; margin-top:10px;">
+    <div style="font-size:22px;">${icon}</div>
+    <div style="flex:1;"><div style="font-weight:800; font-size:14px; color:var(--navy);">${title}</div>
+    <div style="font-size:11.5px; color:var(--slate); margin-top:2px;">${sub}</div></div>
+    <div style="color:var(--slate-light); font-size:16px;">›</div>
+  </div>`;
+  return `
+  <div class="simple-card" style="display:flex; align-items:center; gap:14px;">
+    <div class="profile-avatar">${state.loggedIn?'짐':'?'}</div>
+    <div><div style="font-weight:800; font-size:15px; color:var(--navy);">${state.loggedIn?'짐투고 여행자':'게스트'}</div>
+    <div style="font-size:11.5px; color:var(--slate); margin-top:2px;">${state.loggedIn?'로그인됨 · 부산 짐보관 3회 이용':'로그인이 필요해요'}</div></div>
+  </div>
+  <div class="simple-card" onclick="openCouponBox()" style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+    <div style="font-size:24px;">🎟️</div>
+    <div style="flex:1;"><div style="font-weight:800; font-size:14px; color:var(--navy);">쿠폰확인</div>
+    <div style="font-size:11.5px; color:var(--slate); margin-top:2px;">구매한 메뉴할인권을 한눈에 확인해요</div></div>
+    <span class="tag-badge">${myCoupons.length}장</span>
+  </div>
+  <div class="simple-card" onclick="openMyBookings()" style="display:flex; align-items:center; gap:12px; cursor:pointer; margin-top:10px;">
+    <div style="font-size:24px;">🧳</div>
+    <div style="flex:1;"><div style="font-weight:800; font-size:14px; color:var(--navy);">예약확인</div>
+    <div style="font-size:11.5px; color:var(--slate); margin-top:2px;">캐리어보관 예약 확인 · 캐리어 외관사진 촬영</div></div>
+    <span class="tag-badge">${state.bookings.filter(b=>b.kind==='storage').length}건</span>
+  </div>
+  ${menuRow('🔑','회원가입(로그인)', state.loggedIn?'이미 로그인되어 있어요':'간편하게 가입하고 로그인해요','doLogin()')}
+  ${menuRow('🚪','로그아웃', state.loggedIn?'계정에서 로그아웃해요':'로그인 상태가 아니에요','doLogout()')}
+  ${menuRow('📄','이용약관','짐보관·쿠폰 이용 규정을 확인해요','openTerms()')}`;
+}
+function renderTerms(){
+  return `
+  <div style="padding:14px 18px 24px; display:flex; flex-direction:column; gap:12px;">
+    <div class="notice-box" style="margin-top:0;">
+      <div class="notice-title">이용 시간 및 추가 요금 안내</div>
+      <ul>
+        <li>기본 제공 시간 초과 시, 30분당 750원의 추가 요금이 자동으로 부과됩니다.</li>
+        <li>원활한 가맹점 운영 및 다음 이용객을 위해 예약하신 보관 종료 시간을 준수해 주시기 바랍니다.</li>
+        <li>개점 및 폐점 시간은 매장별로 상이하므로, 반드시 방문 전 매장 상세 정보를 확인하시어 마감 시간 전까지 물품을 수거해 주세요.</li>
+      </ul>
+    </div>
+    <div class="notice-box" style="margin-top:0;">
+      <div class="notice-title">쿠폰 사용 유의 사항</div>
+      <ul>
+        <li>본 쿠폰은 제휴 매장 내 메뉴 또는 상품을 추가로 구매(결제)하시는 고객에 한하여 사용이 가능합니다.</li>
+        <li>매장별 영업시간, 정기 휴무일, 브레이크 타임 및 당일 재료 소진 여부에 따라 사용이 제한될 수 있으므로 방문 전 매장 상세 정보를 꼭 확인해 주세요.</li>
+        <li>배달 앱 주문이나 타사 할인 혜택, 매장 자체 프로모션 상품과는 중복 적용되지 않습니다.</li>
+        <li>쿠폰의 유효기간은 프리미엄 가맹점(곤국·히로)은 발급일로부터 30일, 그 외 매장은 발급일로부터 24시간이며, 기간 만료 후 재발급 및 타인에게의 양도·판매는 불가합니다.</li>
+        <li>현금으로 환불되거나 거스름돈이 반환되지 않는 잔액 소멸성 쿠폰입니다.</li>
+      </ul>
+    </div>
+    <div class="notice-box" style="margin-top:0;">
+      <div class="notice-title">취급 불가 품목 및 배상 면책 안내</div>
+      <ul>
+        <li>귀금속 및 현금류, 의약품, 생물(동·식물), 신분증/여권 등 재발급이 불가능한 중요 서류, 폭발성 위험 물질 등은 보관 및 배송이 절대 불가합니다.</li>
+        <li>취급 불가 품목을 사전에 고지하지 않고 임의로 기탁하신 경우, 물품의 파손·분실·도난이 발생하더라도 적재물 배상 책임 보험의 혜택을 받으실 수 없습니다.</li>
+        <li>약정된 보관 종료 시간(또는 매장 마감 시간) 이후 최대 7일 동안 물품을 찾아가지 않으실 경우, 해당 물품의 소유권은 제휴 매장 및 플랫폼으로 귀속되거나 관련 법령에 따라 임의 처분될 수 있습니다.</li>
+        <li>금지 조항을 위반하거나 이용자의 과실(연락 두절, 허위 정보 입력, 마감 시간 미준수 등)로 인해 발생한 물품의 훼손 및 분실 손해에 대해서는 플랫폼과 제휴 매장이 책임을 지지 않으며, 모든 책임은 이용자 본인에게 귀속됩니다.</li>
+      </ul>
+    </div>
+  </div>`;
+}
+function renderCouponBox(){
+  const myCoupons = state.coupons.filter(c=>c.src==='coupon');   /* 메뉴할인권만 표시 */
+  if(myCoupons.length===0){
+    return `<div class="empty">아직 보유한 메뉴할인권이 없어요.<br>쿠폰 결제 후 이곳에서 확인할 수 있어요.</div>`;
+  }
+  return `
+  <div style="padding:16px 0 24px;">
+    <div style="padding:0 18px 12px; font-size:12.5px; color:var(--slate);">보유 메뉴할인권 <b style="color:var(--coral-dark);">${myCoupons.length}장</b></div>
+    ${myCoupons.map(bk=>{
+      const s = store(bk.storeId);
+      const isA = PARTNER_IDS.includes(s.id);
+      return `
+    <div class="coupon-card clickable" onclick="openCouponDetail('${bk.code}')">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="amt">-${fmt(bk.disc)}원</div>
+        <span class="tag-badge">${bk.code}</span>
+      </div>
+      <div class="name">${s.emoji} ${s.name} · ${isA?'[프리미엄] ':''}메뉴할인권</div>
+      <div class="cond">${bk.date} 결제 · 매장 메뉴 주문 시 할인</div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span class="coupon-valid ${isA?'':'short'}">⏱ 유효기간 ${coupValid(s.id)}</span>
+        <span class="coupon-valid">사용 가능</span>
+      </div>
+      <div style="font-size:10px; color:var(--slate-light); margin-top:7px;">눌러서 상세보기 ›</div>
+    </div>`;}).join('')}
+  </div>`;
+}
+/* ---------- 소비자: 메뉴할인권 상세 (촬영 기능 없음) ---------- */
+function renderCouponDetail(){
+  const bk = state.coupons.find(c=>c.code===state.couponCode);
+  if(!bk) return `<div class="empty">쿠폰을 찾을 수 없어요.</div>`;
+  const s = store(bk.storeId);
+  const isA = PARTNER_IDS.includes(s.id);
+  return `
+  <div style="padding:18px 18px 26px;">
+    <div class="claim-tag" style="max-width:none; margin-bottom:14px;">
+      <div class="claim-code">${bk.code}</div>
+      <div class="claim-store">${s.emoji} ${s.name} · ${isA?'[프리미엄] ':''}메뉴할인권 -${fmt(bk.disc)}원</div>
+      <div class="claim-meta"><span>${bk.date} 발급</span><span>⏱ ${coupValid(s.id)}</span></div>
+    </div>
+    <div class="notice-banner" style="margin-bottom:14px;">⏱ <div><b>유효기간:</b> ${isA
+      ? '프리미엄 가맹점 쿠폰은 <b>발급일로부터 30일</b>까지 사용할 수 있어요.'
+      : '일반 매장 쿠폰은 <b>발급일로부터 24시간</b> 내에만 사용할 수 있어요.'} (미사용 시 자동 소멸)</div></div>
+    <div class="simple-card" style="margin:0;">
+      <div style="font-size:12.5px; color:var(--slate); line-height:1.8;">
+        🎟️ 매장에서 메뉴 주문 시 직원에게 위 쿠폰 번호를 보여주시면<br><b style="color:var(--navy);">${fmt(bk.disc)}원 할인</b>이 적용됩니다.
+      </div>
+    </div>
+  </div>`;
+}
+/* ---------- 소비자: 캐리어보관 예약 상세 + 캐리어 외관사진 촬영 ---------- */
+function bookingCard(bk, from){
+  const s = store(bk.storeId);
+  return `<div class="simple-card clickable-card" style="margin-top:0; cursor:pointer;" onclick="openBookingDetail('${bk.code}','${from}')">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <span style="font-weight:800; color:var(--navy);">${s.emoji} ${s.name}</span>
+      <span class="tag-badge">${bk.code}</span>
+    </div>
+    <div style="font-size:12px; color:var(--slate); margin-bottom:8px;">캐리어 ${bk.luggage}개${bk.assigned?` · 보관함 ${bk.assigned}개 배정 · ${bk.until||''} 수용`:''} · ${bk.date}</div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:${bk.status==='rejected'?'0':'8px'};">
+      ${stPill(bk.status)}
+      <span style="font-weight:800; color:var(--coral-dark);" class="mono">${bk.status==='rejected'?'환불완료':fmt(bk.total)+'원'}</span>
+    </div>
+    ${bk.status==='rejected'?'':`<div style="display:flex; align-items:center; justify-content:space-between;">
+      <span class="coupon-valid" style="${bk.photo?'':'background:rgba(232,169,60,0.16); color:var(--amber-dark);'}">${bk.photo?'📸 캐리어 촬영 완료':'📸 캐리어 촬영 필요'}</span>
+      <span style="font-size:10px; color:var(--slate-light);">눌러서 외관 촬영 ›</span>
+    </div>`}
+  </div>`;
+}
+function renderMyBookings(){
+  const list = state.bookings.filter(bk=>bk.kind==='storage');   /* 캐리어보관 예약만 표시 */
+  if(list.length===0) return `<div class="empty">아직 캐리어보관 예약이 없어요.<br>짐보관에서 매장을 골라 캐리어를 맡겨보세요.</div>`;
+  return `
+  <div style="padding:16px 18px 24px; display:flex; flex-direction:column; gap:10px;">
+    <div style="font-size:12.5px; color:var(--slate); margin-bottom:2px;">캐리어보관 예약 <b style="color:var(--coral-dark);">${list.length}건</b> · 예약을 누르면 캐리어 외관을 촬영할 수 있어요</div>
+    ${list.map(bk=>bookingCard(bk,'mybookings')).join('')}
+  </div>`;
+}
+function renderBookingDetail(){
+  const bk = state.bookings.find(b=>b.code===state.bookingCode);
+  if(!bk) return `<div class="empty">예약을 찾을 수 없어요.</div>`;
+  const s = store(bk.storeId);
+  return `
+  <div style="padding:18px 18px 26px;">
+    <div class="claim-tag ${bk.status==='accepted'?'':'pending'}" style="max-width:none; margin-bottom:10px;">
+      <div class="claim-code">${bk.code}</div>
+      <div class="claim-store">${s.emoji} ${s.name} · 캐리어보관</div>
+      <div class="claim-meta"><span>캐리어 ${bk.luggage}개 · ${bk.durLabel||''}</span><span>${bk.status==='rejected'?'환불완료':fmt(bk.total)+'원 결제'}</span></div>
+    </div>
+    <div style="margin-bottom:14px;">${stPill(bk.status)}${bk.assigned?` <span class="pill ok">보관함 ${bk.assigned}개 · ${bk.until||''} 수용</span>`:''}</div>
+    ${bk.status==='rejected' ? `
+    <div class="simple-card" style="margin:0;"><div style="font-size:12.5px; color:var(--slate); line-height:1.8;">이 예약은 접수되지 않아 결제금액이 환불됐어요.<br>사유: ${bk.rejectReason||'매장 사정'}</div></div>
+    ` : `
+    <div class="section-title" style="margin-bottom:8px;">📸 캐리어 외관사진 촬영</div>
+    <div class="photo-guide">💡 <div><b>짐 맡기기 전, 캐리어 외관을 촬영해 주세요.</b><br>보관 전 상태를 기록해 파손·분실 분쟁을 예방하고, 매장 직원이 짐을 빠르게 확인하는 데 사용돼요.</div></div>
+    ${bk.photo ? `
+    <div class="photo-preview">
+      <img src="${bk.photo}" alt="캐리어 외관사진">
+      <div class="stamp">✓ 촬영 완료 · ${bk.photoTime||''}</div>
+    </div>
+    <button class="btn btn-outline" style="width:100%; margin-top:10px;" onclick="cTakePhoto()">다시 촬영하기</button>
+    ` : `
+    <div class="photo-drop" onclick="cTakePhoto()">
+      <div class="cam">📷</div>
+      <div class="t">${s.name}에 맡길 캐리어 외관 촬영하기</div>
+      <div class="d">터치하면 카메라(또는 앨범)가 열려요 · 전체 모습이 보이게 찍어주세요</div>
+    </div>`}
+    <input type="file" id="c-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="cPhotoChange(event)">
+    <div style="font-size:10.5px; color:var(--slate-light); line-height:1.7; margin-top:12px;">
+      · 사진은 이 예약(${bk.code})에만 연결되며 보관 종료 후 자동 삭제돼요.<br>
+      · 스티커·흠집 등 기존 상태가 잘 보이도록 밝은 곳에서 촬영해 주세요.
+    </div>`}
+  </div>`;
+}
+function renderSaved(){
+  if(state.saved.length===0) return `<div class="empty">아직 저장한 매장이 없어요.<br>지도에서 마음에 드는 프리미엄 가맹점을 찜해보세요.</div>`;
+  const cards = state.saved.map(id=>{
+    const s = store(id);
+    return `<div class="store-card" onclick="openDetail('${s.id}')" style="margin:0 18px;">
+      <div class="store-thumb" style="background:${s.color}">${s.emoji}</div>
+      <div class="store-info">
+        <div class="store-top"><div class="store-name">${s.name}</div></div>
+        <div class="store-meta"><span class="star">★</span> ${s.rating.toFixed(1)} · ${s.cat}</div>
+        <div class="store-addr">${s.addr}</div>
+      </div>
+    </div>`;
+  }).join('<div style="height:10px"></div>');
+  return `<div style="padding:16px 0;">${cards}</div>`;
+}
+function renderBookings(){
+  if(state.bookings.length===0) return `<div class="empty">예약 내역이 없어요.</div>`;
+  const cards = state.bookings.map(bk=>{
+    const s = store(bk.storeId);
+    return `<div class="simple-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="font-weight:800; color:var(--navy);">${s.emoji} ${s.name}</span>
+        <span class="tag-badge">${bk.code}</span>
+      </div>
+      <div style="font-size:12px; color:var(--slate); margin-bottom:8px;">${bk.kind==='coupon' ? `쿠폰 결제 · ${bk.item} (-${fmt(bk.disc)}원)` : `캐리어보관 · 캐리어 ${bk.luggage}개${bk.assigned?` · 보관함 ${bk.assigned}개 배정`:''}`} · ${bk.date}</div>
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        ${stPill(bk.kind==='coupon'?'paid':bk.status)}
+        <span style="font-weight:800; color:var(--coral-dark);" class="mono">${bk.status==='rejected'?'환불완료':fmt(bk.total)+'원'}</span>
+      </div>
+    </div>`;
+  }).join('');
+  return cards;
+}
+function profileCard(){
+  return `
+  <div class="simple-card" style="display:flex; align-items:center; gap:14px;">
+    <div class="profile-avatar">짐</div>
+    <div><div style="font-weight:800; font-size:15px; color:var(--navy);">짐투고 여행자</div>
+    <div style="font-size:11.5px; color:var(--slate); margin-top:2px;">부산 짐보관 3회 이용 · 누적 할인 15,000원</div></div>
+  </div>`;
+}
+/* 짐보관 모드 하단 내정보: 예약확인 (캐리어보관 예약) */
+function renderProfileStorage(){
+  const list = state.bookings.filter(bk=>bk.kind==='storage');
+  return `
+  ${profileCard()}
+  <div class="section-head" style="padding-top:6px;"><div class="section-title">🧳 예약확인</div><div class="section-count mono">${list.length}건</div></div>
+  <div style="padding:0 0 10px;">
+    <div style="padding:0 18px 10px; font-size:11px; color:var(--slate-light);">예약을 누르면 매장별 캐리어 외관사진을 촬영할 수 있어요.</div>
+  </div>
+  ${list.length ? `<div style="padding:0 0 16px; display:flex; flex-direction:column; gap:0;">${list.map(bk=>bookingCard(bk,'profile')).join('')}</div>`
+  : `<div class="empty" style="padding:34px 30px;">아직 캐리어보관 예약이 없어요.<br>홈에서 매장을 골라 캐리어를 맡겨보세요.</div>`}`;
+}
+/* 쿠폰 모드 하단 내정보: 쿠폰보관함 (쿠폰현황만 확인) */
+function renderProfileCoupon(){
+  const myCoupons = state.coupons.filter(c=>c.src==='coupon');   /* 메뉴할인권만 */
+  return `
+  ${profileCard()}
+  <div class="section-head" style="padding-top:6px;"><div class="section-title">🎟️ 쿠폰보관함</div><div class="section-count mono">${myCoupons.length}장</div></div>
+  ${myCoupons.length ? myCoupons.map(bk=>{
+    const s = store(bk.storeId);
+    const isA = PARTNER_IDS.includes(s.id);
+    return `
+    <div class="coupon-card" style="margin-top:0;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="amt">-${fmt(bk.disc)}원</div>
+        <span class="tag-badge">${bk.code}</span>
+      </div>
+      <div class="name">${s.emoji} ${s.name} · ${isA?'[프리미엄] ':''}메뉴할인권</div>
+      <div class="cond">${bk.date} 결제 · 매장 메뉴 주문 시 할인</div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span class="coupon-valid ${isA?'':'short'}">⏱ 유효기간 ${coupValid(s.id)}</span>
+        <span class="coupon-valid" style="background:rgba(31,158,144,0.12); color:var(--teal-dark);">사용 가능</span>
+      </div>
+    </div>`;}).join('')
+  : `<div class="empty" style="padding:34px 30px;">아직 보유한 쿠폰이 없어요.<br>홈에서 매장을 골라 쿠폰을 결제해 보세요.</div>`}`;
+}
+/* ---------- 소비자: 라우터 ---------- */
+function render(){
+  renderAppbar();
+  const c = document.getElementById('c-content');
+  if(state.screen==='myinfo'){ c.innerHTML = renderMyInfo(); }
+  else if(state.screen==='couponbox'){ c.innerHTML = renderCouponBox(); }
+  else if(state.screen==='coupondetail'){ c.innerHTML = renderCouponDetail(); }
+  else if(state.screen==='mybookings'){ c.innerHTML = renderMyBookings(); }
+  else if(state.screen==='bookingdetail'){ c.innerHTML = renderBookingDetail(); }
+  else if(state.screen==='terms'){ c.innerHTML = renderTerms(); }
+  else if(!state.appMode){ c.innerHTML = renderEntry(); }
+  else if(state.screen==='detail'){ c.innerHTML = renderDetail(); }
+  else if(state.screen==='booking'){ c.innerHTML = renderBooking(); }
+  else if(state.screen==='couponpay'){ c.innerHTML = renderCouponPay(); }
+  else if(state.screen==='confirm'){ c.innerHTML = renderConfirm(); }
+  else if(state.appMode==='coupon'){
+    if(state.tab==='saved') c.innerHTML = renderSaved();
+    else if(state.tab==='bookings') c.innerHTML = renderBookings();
+    else if(state.tab==='profile') c.innerHTML = renderProfileCoupon();
+    else c.innerHTML = renderCoupon();
+  }
+  else {
+    if(state.tab==='home') c.innerHTML = renderHome();
+    else if(state.tab==='saved') c.innerHTML = renderSaved();
+    else if(state.tab==='bookings') c.innerHTML = renderBookings();
+    else if(state.tab==='profile') c.innerHTML = renderProfileStorage();
+  }
+  c.scrollTop = 0;
+  renderTabbar();
+  renderModal();
+}
+/* 상태 변화 시 스크롤 유지가 필요한 부분 갱신용 (사장님 액션 → 소비자 화면 반영) */
+function cSoftRefresh(){
+  renderAppbar();
+  const c = document.getElementById('c-content');
+  const keep = c.scrollTop;
+  if(state.screen==='confirm'){ c.innerHTML = renderConfirm(); }
+  else if(state.screen==='detail'){ c.innerHTML = renderDetail(); }
+  else if(state.screen==='booking'){ c.innerHTML = renderBooking(); }
+  else if(!state.appMode){ c.innerHTML = renderEntry(); }
+  else if(state.appMode==='coupon' && state.screen==='list'){
+    if(state.tab==='saved') c.innerHTML = renderSaved();
+    else if(state.tab==='bookings') c.innerHTML = renderBookings();
+    else if(state.tab==='profile') c.innerHTML = renderProfileCoupon();
+    else c.innerHTML = renderCoupon();
+  }
+  else if(state.screen==='mybookings'){ c.innerHTML = renderMyBookings(); }
+  else if(state.screen==='bookingdetail'){ c.innerHTML = renderBookingDetail(); }
+  else if(state.screen==='list'){
+    if(state.tab==='home') c.innerHTML = renderHome();
+    else if(state.tab==='bookings') c.innerHTML = renderBookings();
+    else if(state.tab==='saved') c.innerHTML = renderSaved();
+    else if(state.tab==='profile') c.innerHTML = renderProfileStorage();
+  }
+  c.scrollTop = keep;
+  renderTabbar();
+}
+function renderModal(){
+  const el = document.getElementById('c-modal');
+  if(state.payModal){
+    el.innerHTML = `
+    <div class="modal-overlay" onclick="closePayModal()">
+      <div class="modal-card" onclick="event.stopPropagation()">
+        <div class="modal-icon">🎟️</div>
+        <div class="modal-text">본 쿠폰은 제휴 매장 내 메뉴 또는 상품을 추가로 구매(결제)하시는 고객에 한하여 사용이 가능합니다.</div>
+        <div class="modal-btns">
+          <button class="btn btn-outline" onclick="closePayModal()">취소</button>
+          <button class="btn btn-solid" onclick="proceedPay()">확인 및 결제</button>
+        </div>
+      </div>
+    </div>`;
+    return;
+  }
+  if(state.bookModal){
+    el.innerHTML = `
+    <div class="modal-overlay" onclick="closeBookModal()">
+      <div class="modal-card long" onclick="event.stopPropagation()">
+        <div class="modal-scroll">
+          <div class="modal-sec">취급 불가 품목 및 배상 면책 안내</div>
+          <div class="modal-p"><b>취급 불가 품목:</b> 귀금속 및 현금류, 의약품, 생물(동·식물), 신분증/여권 등 재발급이 불가능한 중요 서류, 폭발성 위험 물질 등은 보관 및 배송이 절대 불가합니다.</div>
+          <div class="modal-p"><b>보험 적용 제외:</b> 취급 불가 품목을 사전에 고지하지 않고 임의로 기탁하신 경우, 물품의 파손·분실·도난이 발생하더라도 적재물 배상 책임 보험의 혜택을 받으실 수 없습니다.</div>
+          <div class="modal-sec">장기 미수거 물품 처리 규정</div>
+          <div class="modal-p"><b>매장 및 플랫폼 귀속:</b> 약정된 보관 종료 시간(또는 매장 마감 시간) 이후 최대 7일 동안 물품을 찾아가지 않으실 경우, 해당 물품의 소유권은 제휴 매장 및 플랫폼으로 귀속되거나 관련 법령에 따라 임의 처분될 수 있습니다.</div>
+          <div class="modal-sec">이용자 책임 및 면책 고지</div>
+          <div class="modal-p">위 금지 조항을 위반하거나 이용자의 과실(연락 두절, 허위 정보 입력, 마감 시간 미준수 등)로 인해 발생한 물품의 훼손 및 분실 손해에 대해서는 플랫폼과 제휴 매장이 책임을 지지 않으며, 모든 책임은 이용자 본인에게 귀속됩니다.</div>
+        </div>
+        <div class="modal-btns">
+          <button class="btn btn-outline" onclick="closeBookModal()">취소</button>
+          <button class="btn btn-solid" onclick="proceedBook()">확인 및 결제</button>
+        </div>
+      </div>
+    </div>`;
+    return;
+  }
+  el.innerHTML='';
+}
+function renderTabbar(){
+  const hide = !state.appMode || state.screen!=='list';
+  const el = document.getElementById('c-tabbar');
+  if(hide){ el.style.display='none'; return; }
+  el.style.display='flex';
+  const tabs = [['home','홈',ICO.home],['saved','저장',ICO.heart],['bookings','예약',ICO.ticket],['profile','내정보',ICO.user]];
+  el.innerHTML = tabs.map(([k,l,i])=>`
+    <button class="tab-btn ${state.tab===k?'active':''}" onclick="setTab('${k}')">${i}<span>${l}</span></button>
+  `).join('');
+}
+/* ---------- 소비자: 액션 ---------- */
+function setTab(t){ state.tab=t; state.screen='list'; render(); }
+function setCat(c){ state.filterCat=c; render(); }
+function toggleOnlyPartner(){
+  if(state.appMode==='coupon'){
+    state.onlyPartnerCoupon=!state.onlyPartnerCoupon;
+    state.coupSel=[]; state.rouletteWinner=null; state.rouletteRunning=false;
+  } else { state.onlyPartnerStorage=!state.onlyPartnerStorage; }
+  render();
+}
+function chooseMode(m){
+  state.appMode=m; state.tab='home'; state.screen='list';
+  state.coupSel=[]; state.rouletteWinner=null; state.rouletteRunning=false;
+  render();
+}
+function storeTap(id){
+  if(state.appMode==='coupon' && !state.onlyPartnerCoupon){
+    if(PARTNER_IDS.includes(id)){ openDetail(id); }
+    else{ toggleSelect(id); }
+    return;
+  }
+  openDetail(id);
+}
+function toggleSelect(id){
+  if(state.rouletteRunning) return;
+  const i = state.coupSel.indexOf(id);
+  if(i>=0){ state.coupSel.splice(i,1); }
+  else if(state.coupSel.length<2){ state.coupSel.push(id); }
+  state.rouletteWinner=null;
+  render();
+}
+function spinRoulette(){
+  if(state.coupSel.length<2 || state.rouletteRunning) return;
+  state.rouletteRunning=true; state.rouletteWinner=null;
+  render();
+  const items=[...state.coupSel];
+  const winnerIdx=Math.floor(Math.random()*items.length);
+  const totalTicks=items.length*4 + winnerIdx;
+  let ticks=0;
+  function tick(delay){
+    const els=document.querySelectorAll('#c-content .roulette-item');
+    els.forEach(e=>e.classList.remove('hot'));
+    const cur=ticks%items.length;
+    if(els[cur]) els[cur].classList.add('hot');
+    if(ticks>=totalTicks){
+      setTimeout(()=>{ state.rouletteRunning=false; state.rouletteWinner=items[cur]; render(); }, 450);
+      return;
+    }
+    ticks++;
+    setTimeout(()=>tick(delay*1.13), delay);
+  }
+  tick(85);
+}
+function goEntry(){ state.appMode=null; state.screen='list'; render(); }
+function openDetail(id){ state.storeId=id; state.screen='detail'; render(); }
+function goBack(){
+  if(state.screen==='booking' || state.screen==='couponpay'){ state.screen='detail'; }
+  else { state.screen='list'; }
+  render();
+}
+function openMyInfo(){ state.screen='myinfo'; render(); }
+function closeMyInfo(){ state.screen='list'; render(); }
+function openCouponBox(keepFrom){ if(!keepFrom){ state.couponBoxFrom = (state.screen==='myinfo') ? 'myinfo' : 'list'; } state.screen='couponbox'; render(); }
+function openCouponDetail(code){ state.couponCode=code; state.screen='coupondetail'; render(); }
+function openBookingDetail(code, from){ state.bookingCode=code; state.bookingFrom=from||'mybookings'; state.screen='bookingdetail'; render(); }
+function backFromBookingDetail(){
+  if(state.bookingFrom==='profile'){ state.screen='list'; state.tab='profile'; render(); }
+  else { openMyBookings(); }
+}
+function cTakePhoto(){ const inp=document.getElementById('c-photo-input'); if(inp) inp.click(); }
+function cPhotoChange(ev){
+  const f = ev.target.files && ev.target.files[0];
+  if(!f) return;
+  const rd = new FileReader();
+  rd.onload = e => {
+    const bk = state.bookings.find(b=>b.code===state.bookingCode);
+    if(bk){ bk.photo = e.target.result; bk.photoTime = nowTimeStr(); }
+    render();
+    toastC('캐리어 외관사진이 등록됐어요','📸');
+  };
+  rd.readAsDataURL(f);
+}
+function openTerms(){ state.screen='terms'; render(); }
+function openMyBookings(){ state.screen='mybookings'; render(); }
+function doLogin(){ state.loggedIn=true; render(); }
+function doLogout(){ state.loggedIn=false; render(); }
+function startCouponPay(){ state.screen='couponpay'; render(); }
+function openPayModal(){ state.payModal=true; render(); }
+function closePayModal(){ state.payModal=false; render(); }
+function proceedPay(){ state.payModal=false; confirmCouponPay(); }
+function openBookModal(){ state.bookModal=true; render(); }
+function closeBookModal(){ state.bookModal=false; render(); }
+function proceedBook(){ state.bookModal=false; confirmBooking(); }
+/* ★ 연동 포인트 1: 쿠폰 결제 → 사장님 앱 매출/알림 반영 */
+function confirmCouponPay(){
+  const s = store(state.storeId);
+  const isA = PARTNER_IDS.includes(s.id);
+  if(!isA && couponLeft(s)<=0){ toastC('오늘 이 매장의 쿠폰이 모두 소진됐어요','🎟️'); state.screen='detail'; render(); return; }
+  const disc = isA ? 5000 : 2000;
+  const price = isA ? 5000 : 2000;
+  const code = 'JM-' + Math.floor(1000+Math.random()*8999);
+  const order = {code, storeId:s.id, kind:'coupon', item:'메뉴할인권', disc, total:price, date:'오늘', time:nowTimeStr(), status:'paid'};
+  if(!isA){ s.couponSold++; }   /* ★ 연동: 결제 즉시 사장님 앱 쿠폰 잔여개수 차감 */
+  state.bookings.unshift(order);
+  state.coupons.unshift({code, storeId:s.id, disc, date:'오늘', src:'coupon'});
+  LINK.orders.unshift(order);
+  addSale(s.id, 'coupon', price);
+  notifyOwner(order);
+  state.screen='confirm'; render();
+}
+function goHomeTab(){ state.tab='home'; state.screen='list'; render(); }
+function startBooking(mode){
+  state.booking = {mode, luggage:1, duration:'1h'};
+  state.screen='booking'; render();
+}
+function changeLuggage(d){
+  const s = store(state.storeId);
+  state.booking.luggage = Math.max(1, Math.min(Math.min(5, s.luggageAvail), state.booking.luggage+d));
+  render();
+}
+function setDuration(k){ state.booking.duration=k; render(); }
+/* ★ 연동 포인트 2: 캐리어보관 결제 → "짐투고 예약!" 사장님 승인 대기 */
+function confirmBooking(){
+  const s = store(state.storeId);
+  const b = state.booking;
+  const total = DUR[b.duration].fee * b.luggage;
+  const code = 'JM-' + Math.floor(1000+Math.random()*8999);
+  const order = {
+    code, storeId:s.id, kind:'storage', luggage:b.luggage,
+    duration:b.duration, durLabel:DUR[b.duration].label,
+    total, date:'오늘', time:nowTimeStr(),
+    status:'pending', assigned:null, until:null, rejectReason:null
+  };
+  state.bookings.unshift(order);   // 같은 객체를 공유 → 사장님이 상태를 바꾸면 소비자 쪽도 즉시 반영
+  LINK.orders.unshift(order);
+  notifyOwner(order);
+  state.screen='confirm'; render();
+}
+</script>
+<script>
+/* ==================================================================
+   사장님 앱 (가맹점 파트너 플랫폼)
+   ================================================================== */
+const DAYS=['월','화','수','목','금','토','일'];
+const TODAY_I=5; /* 토요일 */
+const SALES={};
+STORES.forEach((s,i)=>{
+  SALES[s.id]=DAYS.map((d,di)=>{
+    if(di>TODAY_I) return {d, storage:0, coupon:0};
+    const w=(Math.sin(i*2.3+di*1.4)+1.55);
+    return {d, storage: Math.round(w*7+((i*3+di*5)%6))*1000, coupon: Math.round(w*3+((i+di*2)%4))*1000};
+  });
+});
+function addSale(storeId,type,amt){ SALES[storeId][TODAY_I][type]+=amt; }
+function weekTotal(sid){ return SALES[sid].reduce((a,v)=>a+v.storage+v.coupon,0); }
+function todayTotal(sid){ const t=SALES[sid][TODAY_I]; return t.storage+t.coupon; }
+function fmtMan(n){ return n>=10000 ? (Math.round(n/1000)/10)+'만' : fmt(n); }
+/* 데모용 초기 주문: 곤국에 이미 신규 요청 1건 + 확정 1건이 들어와 있는 상태 */
+LINK.orders.push(
+  {code:'JM-2107', storeId:'gonguk', kind:'storage', luggage:2, duration:'2h', durLabel:'2시간', total:6000, date:'오늘', time:'09:32', status:'pending', assigned:null, until:null, rejectReason:null},
+  {code:'JM-1093', storeId:'gonguk', kind:'storage', luggage:1, duration:'3h', durLabel:'3시간', total:4000, date:'오늘', time:'09:05', status:'accepted', assigned:1, until:'14:00까지'},
+  {code:'JM-0778', storeId:'hiro', kind:'coupon', item:'메뉴할인권', disc:5000, total:5000, date:'오늘', time:'08:51', status:'paid'}
+);
+const O = {
+  storeId:'gonguk', tab:'orders',
+  modal:null, acceptOrder:null, acceptCnt:1, acceptUntil:null,
+  rejectOrder:null, rejectReason:'보관함이 가득 찼어요',
+  replyDraft:{}, noticeDraft:null, hoursDraft:null, flash:null
+};
+function oStore(){ return store(O.storeId); }
+function oOrders(){ return LINK.orders.filter(o=>o.storeId===O.storeId); }
+function oPending(){ return oOrders().filter(o=>o.kind==='storage' && o.status==='pending'); }
+function syncDrafts(){
+  const s=oStore();
+  O.noticeDraft = s.notice;
+  O.hoursDraft = {open:s.open, close:s.close};
+}
+syncDrafts();
+/* ---------- 사장님: 헤더 / 레일 ---------- */
+function oRenderHeader(){
+  const s = oStore();
+  const open = isOpen(s);
+  document.getElementById('o-header').innerHTML = `
+    <div class="o-brand">
+      <div class="brand-mark">${ICO.bag.replace('currentColor','#0B2942')}</div>
+      <div><div class="t display">짐투고 사장님</div><div class="s">PARTNER CENTER</div></div>
+    </div>
+    <select class="o-store-select" onchange="oSetStore(this.value)">
+      ${STORES.map(st=>`<option value="${st.id}" ${st.id===O.storeId?'selected':''}>${st.emoji} ${st.name}</option>`).join('')}
+    </select>
+    <div class="o-open-chip">
+      <span class="d" style="background:${s.tempClosed?'var(--slate-light)':(open?'#4ADE9E':'var(--amber)')};"></span>
+      ${s.tempClosed?'임시휴무':(open?'영업중':'영업종료')}
+    </div>`;
+}
+function oRenderRail(){
+  const pend = oPending().length;
+  const s = oStore();
+  const couponBadge = s.couponMax && couponLeft(s)<=2 ? couponLeft(s) : -1; /* 잔여 2장 이하면 경고 배지 */
+  const tabs = [
+    ['orders','🔔','예약접수', pend>0?pend:-1],
+    ['coupons','🎟️','쿠폰관리', couponBadge],
+    ['manage','🏪','매장관리', -1],
+    ['reviews','💬','리뷰관리', (n=>n>0?n:-1)(s.revs.filter(r=>!r.reply).length)]
+  ];
+  document.getElementById('o-rail').innerHTML = tabs.map(([k,ic,l,badge])=>`
+    <button class="o-rail-btn ${O.tab===k?'active':''}" onclick="oSetTab('${k}')">
+      <span class="ic">${ic}</span>${l}
+      ${badge>=0?`<span class="o-badge">${badge}</span>`:''}
+    </button>`).join('');
+}
+/* ---------- 사장님: 예약접수 ---------- */
+function oOrderCard(o, s){
+  if(o.kind==='coupon'){
+    return `<div class="o-order">
+      <div class="o-order-top"><span class="tag-badge">${o.code}</span><span class="pill ok">쿠폰판매</span><span class="o-order-time">${o.time}</span></div>
+      <div class="o-order-detail">메뉴할인권 판매 · <b>${fmt(o.total)}원</b> 결제 완료</div>
+    </div>`;
+  }
+  if(o.status==='pending'){
+    return `<div class="o-order pending">
+      <div class="o-order-top"><span class="tag-badge">${o.code}</span><span class="pill wait">신규 요청</span><span class="o-order-time">${o.time} 접수</span></div>
+      <div class="o-order-detail">
+        캐리어 <b>${o.luggage}개</b> · 보관 <b>${o.durLabel}</b> · 결제 <b>${fmt(o.total)}원</b><br>
+        <span style="font-size:11px; color:var(--slate);">잔여 보관함 ${s.luggageAvail}/${s.luggageTotal} · 수락 시 보관함이 자동 차감돼요</span>
+      </div>
+      <div class="o-order-actions">
+        <button class="o-btn o-btn-reject" onclick="oOpenReject('${o.code}')">거절</button>
+        <button class="o-btn o-btn-accept" onclick="oOpenAccept('${o.code}')">보관함 배정하고 접수</button>
+      </div>
+    </div>`;
+  }
+  if(o.status==='accepted'){
+    return `<div class="o-order">
+      <div class="o-order-top"><span class="tag-badge">${o.code}</span><span class="pill ok">접수완료</span><span class="o-order-time">${o.time}</span></div>
+      <div class="o-order-detail">캐리어 ${o.luggage}개 · 보관함 <b>${o.assigned}개 배정</b> · <b>${o.until||'-'}</b> 수용 · ${fmt(o.total)}원</div>
+    </div>`;
+  }
+  return `<div class="o-order" style="opacity:0.65;">
+    <div class="o-order-top"><span class="tag-badge">${o.code}</span><span class="pill no">거절됨</span><span class="o-order-time">${o.time}</span></div>
+    <div class="o-order-detail">캐리어 ${o.luggage}개 · 사유: ${o.rejectReason||'-'} · ${fmt(o.total)}원 환불 처리</div>
+  </div>`;
+}
+function oRenderOrders(){
+  const s = oStore();
+  const list = oOrders();
+  const pend = list.filter(o=>o.kind==='storage'&&o.status==='pending');
+  const done = list.filter(o=>o.kind==='storage'&&o.status==='accepted');
+  const etc  = list.filter(o=>o.status==='rejected'||o.kind==='coupon');
+  return `
+  <div class="o-page-title">예약접수</div>
+  <div class="o-page-sub">소비자 앱에서 들어온 캐리어보관 요청을 접수하거나 거절할 수 있어요.</div>
+  <div class="o-tiles" style="grid-template-columns:repeat(3,1fr);">
+    <div class="o-tile ${pend.length?'pri':''}"><div class="lbl">신규 요청</div><div class="num">${pend.length}건</div><div class="sub">수락 대기중</div></div>
+    <div class="o-tile"><div class="lbl">오늘 접수</div><div class="num">${done.length}건</div><div class="sub">확정된 예약</div></div>
+    <div class="o-tile"><div class="lbl">빈 보관함</div><div class="num">${s.luggageAvail}/${s.luggageTotal}</div><div class="sub">잔여/전체</div></div>
+  </div>
+  <div class="o-sec-title">🔔 신규 예약 요청 <span class="mini">수락하면 소비자 앱이 즉시 '예약확정'으로 바뀌어요</span></div>
+  ${pend.length ? pend.map(o=>oOrderCard(o,s)).join('') : `<div class="o-card"><div class="o-empty">지금은 새 요청이 없어요.<br>👈 왼쪽 소비자 앱에서 <b>짐보관 → ${s.name} → 캐리어보관</b>을 결제해 보세요!</div></div>`}
+  <div class="o-sec-title" style="margin-top:16px;">오늘 접수된 예약</div>
+  ${done.length ? done.map(o=>oOrderCard(o,s)).join('') : `<div class="o-card"><div class="o-empty">아직 접수된 예약이 없어요.</div></div>`}
+  ${etc.length ? `<div class="o-sec-title" style="margin-top:16px;">기타 내역</div>${etc.map(o=>oOrderCard(o,s)).join('')}` : ''}`;
+}
+/* ---------- 사장님: 쿠폰관리 (프리미엄 제외 매장 · 최대 10장 제한) ---------- */
+function oRenderCoupons(){
+  const s = oStore();
+  const couponOrders = oOrders().filter(o=>o.kind==='coupon');
+  if(!s.couponMax){
+    return `
+    <div class="o-page-title">쿠폰관리</div>
+    <div class="o-page-sub">${s.name}은(는) <b>프리미엄 가맹점</b>이라 쿠폰 발행 제한이 없어요.</div>
+    <div class="o-card" style="background:var(--navy); border-color:var(--navy);">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="font-size:28px;">🎟️</div>
+        <div>
+          <div style="font-size:14.5px; font-weight:800; color:#7FE3D6;">[프리미엄] 5,000원 메뉴할인권 · 무제한 발행</div>
+          <div style="font-size:11.5px; color:var(--slate-light); margin-top:4px; line-height:1.6;">프리미엄 가맹점(곤국·히로)은 발행 개수 제한 없이 쿠폰이 판매돼요.<br>판매될 때마다 알림과 판매 내역으로 바로 확인할 수 있어요.</div>
+        </div>
+      </div>
+    </div>
+    <div class="o-card">
+      <div class="o-sec-title">오늘 쿠폰 판매 내역</div>
+      ${couponOrders.length ? couponOrders.map(o=>`
+        <div class="o-settle-row"><span class="d">${o.time}</span><span class="n">🎟️ 메뉴할인권 <span style="font-size:10px; color:var(--slate-light);">${o.code}</span></span><span class="a" style="color:var(--teal-dark);">판매완료</span></div>`).join('')
+      : `<div class="o-empty">오늘 판매된 쿠폰이 아직 없어요.</div>`}
+    </div>`;
+  }
+  const left = couponLeft(s);
+  return `
+  <div class="o-page-title">쿠폰관리</div>
+  <div class="o-page-sub">프리미엄 제외 매장은 <b>최대 ${s.couponMax}장</b>까지 쿠폰이 발행돼요. 소비자가 결제하면 잔여 개수가 실시간으로 차감되며, 매월 1일 00시에 초기화됩니다 (미사용분 이월 불가).</div>
+  <div class="o-tiles" style="grid-template-columns:1fr;">
+    <div class="o-tile ${left<=2?'pri':''}"><div class="lbl">잔여 쿠폰</div><div class="num">${left}장</div><div class="sub">/ 최대 ${s.couponMax}장 · 2,000원 할인권</div></div>
+  </div>
+  <div class="o-card">
+    <div class="o-sec-title">오늘 쿠폰 현황 <span class="mini">${left<=0?'전량 소진!':left<=2?'곧 소진돼요':'판매중'}</span></div>
+    <div class="o-locker-visual" style="margin-top:2px;">
+      ${Array.from({length:s.couponMax},(_,i)=>`<div class="o-locker-cell ${i<s.couponSold?'used':''}">${i<s.couponSold?'🎟️':''}</div>`).join('')}
+    </div>
+    <div style="display:flex; justify-content:space-between; margin-top:9px; font-size:10.5px; color:var(--slate-light);">
+      <span>■ 판매됨 ${s.couponSold}장</span><span>□ 잔여 ${left}장 · 매월 1일 00시 초기화 (미사용분 이월 불가)</span>
+    </div>
+    ${left<=0?`<div class="notice-banner" style="margin:12px 0 0;">🎟️ <div><b>오늘 쿠폰이 모두 소진됐어요.</b> 소비자 앱에서는 이 매장의 쿠폰 결제 버튼이 자동으로 비활성화됩니다.</div></div>`:''}
+  </div>
+  <div class="o-card">
+    <div class="o-sec-title">오늘 쿠폰 판매 내역 <span class="mini">소비자 앱 결제 실시간 반영</span></div>
+    ${couponOrders.length ? couponOrders.map(o=>`
+      <div class="o-settle-row"><span class="d">${o.time}</span><span class="n">🎟️ 메뉴할인권 <span style="font-size:10px; color:var(--slate-light);">${o.code}</span></span><span class="a" style="color:var(--coral-dark);">-1장</span></div>`).join('')
+    : `<div class="o-empty">👈 소비자 앱에서 <b>쿠폰 → ${s.name}</b> 결제 시<br>여기에 실시간으로 표시되고 잔여 개수가 줄어들어요.</div>`}
+  </div>`;
+}
+/* ---------- 사장님: 매장관리 ---------- */
+function hourOpts(sel){
+  let out='';
+  for(let h=6; h<=25; h+=0.5){
+    out += `<option value="${h}" ${Math.abs(h-sel)<0.01?'selected':''}>${fmtHour(h>24?h-24:h)}${h>=24?' (익일)':''}</option>`;
+  }
+  return out;
+}
+function oRenderManage(){
+  const s = oStore();
+  const used = s.luggageTotal - s.luggageAvail;
+  return `
+  <div class="o-page-title">매장관리</div>
+  <div class="o-page-sub">여기서 바꾸면 소비자 앱의 ${s.name} 화면에 바로 반영돼요.</div>
+  <div class="o-card">
+    <div class="o-sec-title">영업 상태
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:11px; color:var(--slate); font-weight:700;">${s.tempClosed?'임시휴무 중':'정상 영업'}</span>
+        <div class="switch ${s.tempClosed?'':'on'}" onclick="oToggleClosed()"></div>
+      </div>
+    </div>
+    <div style="font-size:11.5px; color:var(--slate); line-height:1.6;">임시휴무로 바꾸면 소비자 앱에 '임시휴무'로 표시되고 새 예약을 받지 않아요.</div>
+  </div>
+  <div class="o-card">
+    <div class="o-sec-title">영업시간 ${O.flash==='hours'?'<span style="color:var(--teal-dark); font-size:11px;">저장됨 ✓</span>':''}</div>
+    <div class="o-hours-row">
+      <select class="o-select" style="flex:1;" onchange="O.hoursDraft.open=parseFloat(this.value)">${hourOpts(O.hoursDraft.open)}</select>
+      <span class="tilde">~</span>
+      <select class="o-select" style="flex:1;" onchange="O.hoursDraft.close=parseFloat(this.value)">${hourOpts(O.hoursDraft.close)}</select>
+      <button class="o-btn o-btn-navy o-btn-sm" onclick="oSaveHours()">저장</button>
+    </div>
+  </div>
+  <div class="o-card">
+    <div class="o-sec-title">보관함 관리 <span class="mini">사용중 ${used} · 빈 보관함 ${s.luggageAvail}</span></div>
+    <div style="display:flex; gap:10px;">
+      <div style="flex:1;">
+        <span class="o-label-sm">전체 보관함</span>
+        <div class="stepper" style="padding:7px 10px;">
+          <button class="step-btn" onclick="oLockerTotal(-1)">−</button>
+          <div class="cnt mono">${s.luggageTotal}</div>
+          <button class="step-btn" onclick="oLockerTotal(1)">+</button>
+        </div>
+      </div>
+      <div style="flex:1;">
+        <span class="o-label-sm">빈 보관함 (직접 조정)</span>
+        <div class="stepper" style="padding:7px 10px;">
+          <button class="step-btn" onclick="oLockerAvail(-1)">−</button>
+          <div class="cnt mono">${s.luggageAvail}</div>
+          <button class="step-btn" onclick="oLockerAvail(1)">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="o-locker-visual">
+      ${Array.from({length:s.luggageTotal},(_,i)=>`<div class="o-locker-cell ${i<used?'used':''}">${i<used?'🧳':''}</div>`).join('')}
+    </div>
+  </div>
+  <div class="o-card">
+    <div class="o-sec-title">공지사항 ${O.flash==='notice'?'<span style="color:var(--teal-dark); font-size:11px;">등록됨 ✓</span>':''}</div>
+    <textarea class="o-input" rows="2" placeholder="예) 오늘은 20시에 조기 마감합니다 / 곤이탕 재료 소진 시 조기 품절될 수 있어요" oninput="O.noticeDraft=this.value">${O.noticeDraft||''}</textarea>
+    <div style="display:flex; gap:8px; margin-top:9px;">
+      <button class="o-btn o-btn-coral o-btn-sm" style="flex:1;" onclick="oSaveNotice()">소비자 앱에 공지 등록</button>
+      ${s.notice?`<button class="o-btn o-btn-ghost o-btn-sm" onclick="oClearNotice()">공지 내리기</button>`:''}
+    </div>
+  </div>
+  <div class="o-card">
+    <div class="o-sec-title">메뉴 관리 <span class="mini">가격 수정 · 품절 처리</span></div>
+    ${s.menu.map((m,i)=>`
+      <div class="o-menu-row">
+        <div class="o-menu-name">${m.n}${m.soldOut?'<span class="so">품절중</span>':''}</div>
+        <input class="o-price-input" id="o-price-${i}" type="number" value="${m.p}" step="500">
+        <button class="o-btn o-btn-navy o-btn-sm" onclick="oSavePrice(${i})">저장</button>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+          <div class="switch ${m.soldOut?'on':''}" onclick="oToggleSold(${i})" style="--sw:1;"></div>
+          <span style="font-size:9px; font-weight:800; color:${m.soldOut?'var(--coral-dark)':'var(--slate-light)'};">품절</span>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+/* ---------- 사장님: 리뷰관리 ---------- */
+function oRenderReviews(){
+  const s = oStore();
+  return `
+  <div class="o-page-title">리뷰관리</div>
+  <div class="o-page-sub">답글을 등록하면 소비자 앱 ${s.name} 방명록에 '사장님 답글'로 표시돼요.</div>
+  ${s.revs.map((r,i)=>`
+    <div class="o-review">
+      <div class="o-review-head"><span>${r.u}</span><span class="star">${'★'.repeat(r.r)}</span><span style="margin-left:auto; font-size:10px; color:var(--slate-light); font-weight:600;">방명록</span></div>
+      <div class="o-review-text">${r.t}</div>
+      ${r.reply
+        ? `<div class="o-reply-done"><div class="who">↳ 내 답글 (소비자 앱 노출중)</div>${r.reply}</div>`
+        : `<div class="o-reply-box">
+             <input class="o-input" placeholder="따뜻한 답글을 남겨보세요" value="${O.replyDraft[s.id+'-'+i]||''}" oninput="O.replyDraft['${s.id}-${i}']=this.value">
+             <button class="o-btn o-btn-teal o-btn-sm o-btn-accept" style="flex:none;" onclick="oSendReply(${i})">등록</button>
+           </div>`}
+    </div>`).join('')}`;
+}
+/* ---------- 사장님: 모달 (수락/거절) ---------- */
+function untilOptions(s){
+  const opts=[];
+  let h = Math.floor(nowHour())+1;
+  const closeH = s.close;
+  while(h < closeH && opts.length<4){ opts.push(fmtHour(h>24?h-24:h)+'까지'); h++; }
+  opts.push('마감('+fmtHour(closeH>24?closeH-24:closeH)+')까지');
+  return opts;
+}
+function oRenderModal(){
+  const el = document.getElementById('o-modal');
+  if(O.modal==='accept' && O.acceptOrder){
+    const o = O.acceptOrder, s = store(o.storeId);
+    const opts = untilOptions(s);
+    if(!O.acceptUntil) O.acceptUntil = opts[opts.length-1];
+    const used = s.luggageTotal - s.luggageAvail;
+    el.innerHTML = `
+    <div class="modal-overlay" onclick="oCloseModal()">
+      <div class="modal-card long" onclick="event.stopPropagation()" style="max-width:400px;">
+        <div style="display:flex; align-items:center; gap:9px; margin-bottom:12px;">
+          <div style="width:38px;height:38px;border-radius:11px;background:rgba(31,158,144,0.12);display:flex;align-items:center;justify-content:center;font-size:18px;">🧳</div>
+          <div>
+            <div style="font-size:15px;font-weight:800;color:var(--navy);">예약 접수 · <span class="mono">${o.code}</span></div>
+            <div style="font-size:11px;color:var(--slate);margin-top:2px;">캐리어 ${o.luggage}개 · ${o.durLabel} · ${fmt(o.total)}원 결제됨</div>
+          </div>
+        </div>
+        <span class="o-label-sm">배정할 보관함 개수 <span style="color:var(--slate-light);">(빈 보관함 ${s.luggageAvail}개)</span></span>
+        <div class="stepper" style="margin-bottom:12px;">
+          <button class="step-btn" onclick="oAcceptCnt(-1)">−</button>
+          <div class="cnt mono">${O.acceptCnt}</div>
+          <button class="step-btn" onclick="oAcceptCnt(1)">+</button>
+        </div>
+        <span class="o-label-sm">매장에서 수용 가능한 시간</span>
+        <select class="o-select" style="width:100%; margin-bottom:12px;" onchange="O.acceptUntil=this.value">
+          ${opts.map(op=>`<option ${op===O.acceptUntil?'selected':''}>${op}</option>`).join('')}
+        </select>
+        <div class="o-locker-visual" style="margin:0 0 14px;">
+          ${Array.from({length:s.luggageTotal},(_,i)=>{
+            const isUsed = i<used, isNew = !isUsed && i<used+O.acceptCnt;
+            return `<div class="o-locker-cell ${isUsed?'used':''}" style="${isNew?'border-color:var(--teal); background:rgba(31,158,144,0.14);':''}">${isUsed?'🧳':(isNew?'＋':'')}</div>`;
+          }).join('')}
+        </div>
+        <div class="modal-btns">
+          <button class="btn btn-outline" onclick="oCloseModal()">취소</button>
+          <button class="btn btn-solid" style="background:var(--teal);" onclick="oAcceptConfirm()">접수 확정</button>
+        </div>
+      </div>
+    </div>`;
+    return;
+  }
+  if(O.modal==='reject' && O.rejectOrder){
+    const o = O.rejectOrder;
+    const reasons = ['보관함이 가득 찼어요','마감 시간이 임박했어요','매장 사정으로 오늘은 어려워요'];
+    el.innerHTML = `
+    <div class="modal-overlay" onclick="oCloseModal()">
+      <div class="modal-card" onclick="event.stopPropagation()" style="max-width:400px; text-align:left;">
+        <div style="font-size:15px; font-weight:800; color:var(--navy); margin-bottom:4px;">예약 거절 · <span class="mono">${o.code}</span></div>
+        <div style="font-size:11.5px; color:var(--slate); margin-bottom:12px;">거절 사유를 선택하면 소비자에게 안내되고 결제금액이 자동 환불돼요.</div>
+        <div style="display:flex; flex-direction:column; gap:7px; margin-bottom:14px;">
+          ${reasons.map(r=>`
+            <div class="dur-opt ${O.rejectReason===r?'active':''}" style="text-align:left; padding:11px 13px;" onclick="O.rejectReason='${r}'; oRenderModal();">${r}</div>`).join('')}
+        </div>
+        <div class="modal-btns">
+          <button class="btn btn-outline" onclick="oCloseModal()">취소</button>
+          <button class="btn btn-solid" onclick="oRejectConfirm()">거절하고 환불</button>
+        </div>
+      </div>
+    </div>`;
+    return;
+  }
+  el.innerHTML='';
+}
+/* ---------- 사장님: 라우터 ---------- */
+function oRender(){
+  oRenderHeader();
+  oRenderRail();
+  const c = document.getElementById('o-content');
+  const keep = c.scrollTop;
+  if(O.tab==='orders') c.innerHTML = oRenderOrders();
+  else if(O.tab==='coupons') c.innerHTML = oRenderCoupons();
+  else if(O.tab==='manage') c.innerHTML = oRenderManage();
+  else if(O.tab==='reviews') c.innerHTML = oRenderReviews();
+  c.scrollTop = keep;
+  oRenderModal();
+}
+/* ---------- 사장님: 액션 ---------- */
+function oSetTab(t){ O.tab=t; oRender(); document.getElementById('o-content').scrollTop=0; }
+function oSetStore(id){ O.storeId=id; syncDrafts(); oRender(); document.getElementById('o-content').scrollTop=0; }
+function oToggleClosed(){ const s=oStore(); s.tempClosed=!s.tempClosed; oRender(); cSoftRefresh(); }
+function oSaveHours(){
+  const s=oStore();
+  s.open=O.hoursDraft.open; s.close=O.hoursDraft.close;
+  O.flash='hours'; oRender(); cSoftRefresh();
+  setTimeout(()=>{ O.flash=null; oRender(); },1500);
+}
+function oLockerTotal(d){
+  const s=oStore();
+  const before=s.luggageTotal;
+  s.luggageTotal=Math.max(1, Math.min(12, s.luggageTotal+d));
+  const diff=s.luggageTotal-before;
+  s.luggageAvail=Math.max(0, Math.min(s.luggageTotal, s.luggageAvail+diff));
+  oRender(); cSoftRefresh();
+}
+function oLockerAvail(d){
+  const s=oStore();
+  s.luggageAvail=Math.max(0, Math.min(s.luggageTotal, s.luggageAvail+d));
+  oRender(); cSoftRefresh();
+}
+function oSaveNotice(){
+  const s=oStore();
+  s.notice=(O.noticeDraft||'').trim();
+  O.flash='notice'; oRender(); cSoftRefresh();
+  setTimeout(()=>{ O.flash=null; oRender(); },1500);
+}
+function oClearNotice(){ const s=oStore(); s.notice=''; O.noticeDraft=''; oRender(); cSoftRefresh(); }
+function oSavePrice(i){
+  const s=oStore();
+  const inp=document.getElementById('o-price-'+i);
+  const v=parseInt(inp.value,10);
+  if(!isNaN(v) && v>0){ s.menu[i].p=v; }
+  oRender(); cSoftRefresh();
+}
+function oToggleSold(i){
+  const s=oStore();
+  s.menu[i].soldOut=!s.menu[i].soldOut;
+  oRender(); cSoftRefresh();
+}
+function oSendReply(i){
+  const s=oStore();
+  const key=s.id+'-'+i;
+  const txt=(O.replyDraft[key]||'').trim();
+  if(!txt) return;
+  s.revs[i].reply=txt;
+  delete O.replyDraft[key];
+  oRender(); cSoftRefresh();
+  toastC(`${s.name} 사장님이 방명록에 답글을 남겼어요`,'💬');
+}
+function oOpenAccept(code){
+  const o=LINK.orders.find(x=>x.code===code);
+  if(!o) return;
+  const s=store(o.storeId);
+  O.modal='accept'; O.acceptOrder=o;
+  O.acceptCnt=Math.min(o.luggage, Math.max(1,s.luggageAvail));
+  O.acceptUntil=null;
+  oRenderModal();
+}
+function oAcceptCnt(d){
+  const s=store(O.acceptOrder.storeId);
+  O.acceptCnt=Math.max(1, Math.min(s.luggageAvail, O.acceptCnt+d));
+  oRenderModal();
+}
+function oAcceptConfirm(){
+  const o=O.acceptOrder, s=store(o.storeId);
+  o.status='accepted';
+  o.assigned=O.acceptCnt;
+  o.until=O.acceptUntil;
+  s.luggageAvail=Math.max(0, s.luggageAvail-O.acceptCnt);
+  addSale(s.id,'storage',o.total);
+  O.modal=null; O.acceptOrder=null;
+  oCloseBanner();
+  oRender();
+  cSoftRefresh();
+  toastC(`${s.name} 예약이 확정됐어요! 보관함 ${o.assigned}개 · ${o.until}`,'✅');
+}
+function oOpenReject(code){
+  const o=LINK.orders.find(x=>x.code===code);
+  if(!o) return;
+  O.modal='reject'; O.rejectOrder=o; O.rejectReason='보관함이 가득 찼어요';
+  oRenderModal();
+}
+function oRejectConfirm(){
+  const o=O.rejectOrder;
+  o.status='rejected';
+  o.rejectReason=O.rejectReason;
+  O.modal=null; O.rejectOrder=null;
+  oCloseBanner();
+  oRender();
+  cSoftRefresh();
+  toastC(`예약이 접수되지 않아 ${fmt(o.total)}원이 환불됐어요`,'↩️');
+}
+function oCloseModal(){ O.modal=null; O.acceptOrder=null; O.rejectOrder=null; oRenderModal(); }
+/* ---------- ★ 연동 핵심: 소비자 결제 → 사장님 실시간 알림 ---------- */
+function notifyOwner(order){
+  const s = store(order.storeId);
+  const el = document.getElementById('o-banner');
+  const isRes = order.kind==='storage';
+  const couponInfo = !isRes && s.couponMax ? ` · 잔여 ${couponLeft(s)}/${s.couponMax}장` : '';
+  el.innerHTML = `
+  <div class="o-banner">
+    <div class="bell">${isRes?'🔔':'🎟️'}</div>
+    <div class="tx">
+      <div class="t1">${isRes?'짐투고 예약!':'쿠폰 결제!'}</div>
+      <div class="t2">${s.emoji} ${s.name} · ${isRes ? `캐리어 ${order.luggage}개 · ${order.durLabel} · ${fmt(order.total)}원` : `메뉴할인권 1장 판매${couponInfo}`}</div>
+    </div>
+    <button class="go" onclick="oJump('${order.storeId}','${isRes?'orders':'coupons'}')">${isRes?'예약 확인':'쿠폰 현황'}</button>
+    <button class="x" onclick="oCloseBanner()">✕</button>
+  </div>`;
+  clearTimeout(notifyOwner._t);
+  if(!isRes){ notifyOwner._t=setTimeout(oCloseBanner, 6000); }
+  oRender(); /* 배지·리스트 즉시 갱신 */
+}
+function oJump(sid, tab){
+  O.storeId=sid; O.tab=tab; syncDrafts();
+  oCloseBanner(); oRender();
+  document.getElementById('o-content').scrollTop=0;
+}
+function oCloseBanner(){ document.getElementById('o-banner').innerHTML=''; }
+/* ---------- 초기 렌더 ---------- */
+render();
+oRender();
+</script>
+</body>
+</html>
