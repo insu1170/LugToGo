@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>배포 테스트</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ff3366;
+    color: white;
+    font-family: sans-serif;
+    text-align: center;
+  }
+  div { font-size: 2rem; }
+</style>
+</head>
+<body>
+  <div>
+    ✅ 배포 테스트 성공<br>
+    <span id="ts" style="font-size:1rem"></span>
+  </div>
+  <script>
+    document.getElementById('ts').textContent = new Date().toISOString();
+  </script>
+</body>
+</html>
